@@ -37,3 +37,4 @@ tags
 .cproject
 .xxproject
 .envrc
+qemu_build
