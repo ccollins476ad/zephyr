@@ -6,6 +6,7 @@ target_sources(app PRIVATE
     src/main.c
     src/mcumgr/mgmt/src/mgmt.c
     src/mcumgr/newtmgr/src/newtmgr.c
+    src/mcumgr/newtmgr/port/zephyr/src/zephyr_nmgr.c
     src/mgmt_os/src/mgmt_os.c
     src/mgmt_os/src/mgmt_os.c
     src/tinycbor/src/cbor_buf_reader.c
@@ -17,6 +18,7 @@ target_sources(app PRIVATE
     #src/tinycbor/src/cborpretty.c
     src/tinycbor/src/cbortojson.c
     src/tinycbor/src/cborvalidation.c
+    src/znp/src/znp.c
 )
 
 target_include_directories(app PRIVATE
@@ -24,5 +26,7 @@ target_include_directories(app PRIVATE
     src/cborattr/include
     src/mcumgr/mgmt/include
     src/mcumgr/newtmgr/include
+    src/mcumgr/newtmgr/port/zephyr/include
     src/tinycbor/src
+    src/znp/include
 )
