@@ -38,3 +38,4 @@ tags
 .xxproject
 .envrc
 qemu_build
+.gdb_history

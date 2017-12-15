@@ -1,3 +1,4 @@
+#include "drivers/console/uart_nmgr.h"
 #include "mgmt/mgmt.h"
 #include "newtmgr/newtmgr.h"
 #include "znp/znp.h"
@@ -59,6 +60,7 @@ zephyr_nmgr_alloc_rsp(const void *req, void *arg)
     if (rsp == NULL) {
         return NULL;
     }
+    rsp->len = 0;
 
     return rsp;
 }
@@ -120,6 +122,15 @@ zephyr_nmgr_write_at(struct cbor_encoder_writer *writer, int offset,
 static int
 zephyr_nmgr_tx_rsp(struct nmgr_streamer *ns, void *rsp, void *arg)
 {
+    struct zephyr_nmgr_pkt *pkt;
+    int rc;
+
+    pkt = rsp;
+
+    rc = uart_nmgr_send(pkt->data, pkt->len);
+    assert(rc == 0);
+
+    free(pkt);
     return MGMT_ERR_EOK;
 }
 
@@ -174,102 +185,3 @@ zephyr_nmgr_process_packet(struct zephyr_nmgr_pkt *pkt)
     rc = nmgr_process_single_packet(&streamer, pkt);
     return rc;
 }
-
-#if 0
-static void
-zephyr_nmgr_process(struct zephyr_nmgr_transport *mnt)
-{
-    struct cbor_mbuf_reader reader;
-    struct cbor_mbuf_writer writer;
-    struct nmgr_streamer streamer;
-    struct os_mbuf *req;
-    int rc;
-
-    streamer = (struct nmgr_streamer) {
-        .ns_base = {
-            .cfg = &zephyr_nmgr_cbor_cfg,
-            .reader = &reader.r,
-            .writer = &writer.enc,
-            .cb_arg = mnt,
-        },
-        .ns_tx_rsp = zephyr_nmgr_tx_rsp,
-    };
-
-    while (1) {
-        req = os_mqueue_get(&mnt->mnt_imq);
-        if (req == NULL) {
-            break;
-        }
-
-        rc = nmgr_process_single_packet(&streamer, req);
-        if (rc != 0) {
-            break;
-        }
-    }
-}
-
-static void
-zephyr_nmgr_event_data_in(struct os_event *ev)
-{
-    zephyr_nmgr_process(ev->ev_arg);
-}
-
-int
-zephyr_nmgr_transport_init(struct zephyr_nmgr_transport *mnt,
-                           zephyr_nmgr_transport_out_fn *output_func,
-                           zephyr_nmgr_transport_get_mtu_fn *get_mtu_func)
-{
-    int rc;
-
-    *mnt = (struct zephyr_nmgr_transport) {
-        .mnt_output = output_func,
-        .mnt_get_mtu = get_mtu_func,
-    };
-
-    rc = os_mqueue_init(&mnt->mnt_imq, zephyr_nmgr_event_data_in, mnt);
-    if (rc != 0) {
-        return rc;
-    }
-
-    return 0;
-}
-
-int
-zephyr_nmgr_rx_req(struct zephyr_nmgr_transport *mnt, struct os_mbuf *req)
-{
-    int rc;
-
-    rc = os_mqueue_put(&mnt->mnt_imq, mgmt_evq_get(), req);
-    if (rc != 0) {
-        os_mbuf_free_chain(req);
-    }
-
-    return rc;
-}
-
-struct os_eventq *
-mgmt_evq_get(void)
-{
-    return nmgr_evq;
-}
-
-void
-mgmt_evq_set(struct os_eventq *evq)
-{
-    nmgr_evq = evq;
-}
-
-void
-nmgr_pkg_init(void)
-{
-    int rc;
-
-    /* Ensure this function only gets called by sysinit. */
-    SYSINIT_ASSERT_ACTIVE();
-
-    rc = mgmt_os_group_register();
-    SYSINIT_PANIC_ASSERT(rc == 0);
-
-    mgmt_evq_set(os_eventq_dflt_get());
-}
-#endif
