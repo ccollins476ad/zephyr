@@ -159,7 +159,8 @@ nmgr_build_err_rsp(struct nmgr_streamer *streamer,
         return rc;
     }
 
-    rsp_hdr.nh_len = htons(cbor_encode_bytes_written(&cbuf.encoder));
+    rsp_hdr.nh_len = cbor_encode_bytes_written(&cbuf.encoder) - NMGR_HDR_SIZE;
+    nmgr_hton_hdr(&rsp_hdr);
     rc = nmgr_write_hdr(streamer, &rsp_hdr);
     if (rc != 0) {
         return rc;
@@ -248,7 +249,7 @@ nmgr_handle_single_req(struct nmgr_streamer *streamer,
         return rc;
     }
 
-    rsp_hdr.nh_len = cbor_encode_bytes_written(&cbuf.encoder);
+    rsp_hdr.nh_len = cbor_encode_bytes_written(&cbuf.encoder) - NMGR_HDR_SIZE;
     nmgr_hton_hdr(&rsp_hdr);
     rc = nmgr_write_hdr(streamer, &rsp_hdr);
     if (rc != 0) {

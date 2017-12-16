@@ -48,17 +48,6 @@ uart_nmgr_find_nl(const u8_t *buf, int start, int end)
 }
 
 static int
-uart_nmgr_encode_rsp(const u8_t *src, int src_len,
-                     u8_t *dst, int max_dst_len)
-{
-    if (BASE64_ENCODE_SIZE(src_len) > max_dst_len) {
-        return -1;
-    }
-
-    return base64_encode(src, src_len, dst, 1);
-}
-
-static int
 uart_nmgr_decode_req(const u8_t *src, int src_len,
                      u8_t *dst, int max_dst_len)
 {
@@ -108,6 +97,9 @@ uart_nmgr_decoded_pkt_is_valid(const u8_t *pkt, int len)
 
     memcpy(&hdr_len, pkt, sizeof hdr_len);
     hdr_len = sys_be16_to_cpu(hdr_len);
+
+    /* XXX: Calculate CRC. */
+
     return hdr_len == len - 2;
 }
 
@@ -149,7 +141,7 @@ static void uart_nmgr_isr(struct device *unused)
 
             rc = uart_nmgr_parse_pkt(buf, nl_idx);
             if (rc != -1 && uart_nmgr_decoded_pkt_is_valid(buf, rc)) {
-                app_cb(buf + 2, rc - 2);
+                app_cb(buf + 2, rc - 4);
             }
 
             rem_len = buf_off - nl_idx - 1;
@@ -181,17 +173,50 @@ uart_nmgr_send_raw(const void *data, int len)
 int uart_nmgr_send(const u8_t *data, int len)
 {
     static u8_t buf[BASE64_ENCODE_SIZE(UART_NMGR_BUF_SZ)];
+    u8_t tmp[3];
     uint16_t u16;
     int off;
+    int rem;
+    int i;
 
     u16 = sys_cpu_to_be16(SHELL_NLIP_PKT);
     uart_nmgr_send_raw(&u16, sizeof u16);
 
+    /* XXX: Calc CRC. */
+
     u16 = sys_cpu_to_be16(len);
-    off = base64_encode(&u16, sizeof u16, buf, 0);
-    
-    off += base64_encode(data, len, buf + off, 1);
+    memcpy(tmp, &u16, sizeof u16);
+    tmp[2] = data[0];
+    off = base64_encode(tmp, 3, buf, 0);
+
+    i = 1;
+    while (1) {
+        rem = len - i;
+        if (rem >= 3) {
+            memcpy(tmp, data + i, 3);
+            off += base64_encode(tmp, 3, buf + off, 0);
+        } else if (rem == 0) {
+            off += base64_encode(tmp, 2, buf + off, 1);
+            break;
+        } else if (rem == 1) {
+            tmp[0] = data[i];
+            off += base64_encode(tmp, 3, buf + off, 1);
+            break;
+        } else if (rem == 2) {
+            tmp[0] = data[i];
+            tmp[1] = data[i + 1];
+            off += base64_encode(tmp, 3, buf + off, 0);
+            off += base64_encode(tmp, 1, buf + off, 1);
+            break;
+        }
+
+        i += 3;
+    }
+
     uart_nmgr_send_raw(buf, off);
+
+    tmp[0] = '\r';
+    uart_nmgr_send_raw(tmp, 1);
 
 	return 0;
 }
