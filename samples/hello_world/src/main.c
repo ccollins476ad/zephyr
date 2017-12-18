@@ -6,7 +6,6 @@
 
 #include <assert.h>
 #include <zephyr.h>
-#include <misc/printk.h>
 #include <stdlib.h>
 #include "console/uart_nmgr.h"
 #include "mgmt_os/mgmt_os.h"
@@ -41,8 +40,6 @@ recv_cb(const uint8_t *buf, size_t len)
 void main(void)
 {
     int rc;
-
-	printk("Hello World! %s\n", CONFIG_ARCH);
 
     rc = mgmt_os_group_register();
     assert(rc == 0);
