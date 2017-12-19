@@ -38,4 +38,5 @@ tags
 .xxproject
 .envrc
 qemu_build
+nrf52dk_build
 .gdb_history
