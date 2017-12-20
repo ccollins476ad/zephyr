@@ -193,7 +193,7 @@ imgr_read_info(int image_slot, struct image_version *ver, uint8_t *hash,
         return rc;
     }
 
-    if (data_end > bounds->size) {
+    if (data_end > bounds->offset + bounds->size) {
         return 1;
     }
 
