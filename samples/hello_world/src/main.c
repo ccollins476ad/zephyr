@@ -6,9 +6,12 @@
 
 #include <assert.h>
 #include <zephyr.h>
+#include <string.h>
 #include <stdlib.h>
 #include "console/uart_nmgr.h"
 #include "mgmt_os/mgmt_os.h"
+#include "imgmgr/imgmgr.h"
+#include "zephyr_nmgr/zephyr_nmgr.h"
 #include "znp/znp.h"
  
 static struct zephyr_nmgr_pkt *
@@ -42,6 +45,9 @@ void main(void)
     int rc;
 
     rc = mgmt_os_group_register();
+    assert(rc == 0);
+
+    rc = imgmgr_group_register();
     assert(rc == 0);
 
     uart_nmgr_register(recv_cb);

@@ -47,8 +47,6 @@ if (NOT DEFINED FROM_WHO)
   set(FROM_WHO Zephyr)
 endif()
 
-target_compile_definitions(app PRIVATE "-DMCUBOOT_HELLO_WORLD_FROM=\"${FROM_WHO}\"")
-
 target_sources(app PRIVATE
     src/cborattr/src/cborattr.c
     src/main.c
@@ -64,9 +62,24 @@ target_sources(app PRIVATE
     src/tinycbor/src/cborparser.c
     src/tinycbor/src/cborparser_dup_string.c
     #src/tinycbor/src/cborpretty.c
-    src/tinycbor/src/cbortojson.c
+    #src/tinycbor/src/cbortojson.c
     src/tinycbor/src/cborvalidation.c
     src/znp/src/znp.c
+
+    # MCUBoot.
+    src/mcuboot/boot/bootutil/src/bootutil_misc.c
+    src/mcuboot/boot/bootutil/src/bootutil_priv.h
+    src/mcuboot/boot/bootutil/src/caps.c
+    src/mcuboot/boot/bootutil/src/image_ec.c
+    src/mcuboot/boot/bootutil/src/image_ec256.c
+    src/mcuboot/boot/bootutil/src/image_rsa.c
+    #src/mcuboot/boot/bootutil/src/image_validate.c
+    src/mcuboot/boot/bootutil/src/loader.c
+    src/mcuboot/boot/zephyr/flash_map.c
+
+    src/imgmgr/src/imgmgr.c
+    src/imgmgr/src/imgmgr_state.c
+    src/imgmgr/src/imgmgr_util.c
 )
 
 target_include_directories(app PRIVATE
@@ -77,4 +90,8 @@ target_include_directories(app PRIVATE
     src/mcumgr/newtmgr/port/zephyr/include
     src/tinycbor/src
     src/znp/include
+    src/mcuboot/boot/bootutil/include
+    src/mcuboot/boot/bootutil/src
+    src/mcuboot/boot/zephyr/include
+    src/imgmgr/include
 )
