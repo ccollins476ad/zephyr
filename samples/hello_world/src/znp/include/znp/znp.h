@@ -8,6 +8,7 @@
 #define ZEPHYR_NMGR_PKT_SZ      1024
 
 struct zephyr_nmgr_pkt {
+    void *fifo_reserved;
     uint8_t data[ZEPHYR_NMGR_PKT_SZ];
     int len;
 };

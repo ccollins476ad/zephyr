@@ -1,3 +1,4 @@
+#include <zephyr.h>
 #include "drivers/console/uart_nmgr.h"
 #include "mgmt/mgmt.h"
 #include "newtmgr/newtmgr.h"
@@ -56,8 +57,9 @@ zephyr_nmgr_alloc_rsp(const void *req, void *arg)
 {
     struct zephyr_nmgr_pkt *rsp;
 
-    rsp = malloc(sizeof *rsp);
+    rsp = k_malloc(sizeof *rsp);
     if (rsp == NULL) {
+        assert(0);
         return NULL;
     }
     rsp->len = 0;
@@ -130,14 +132,14 @@ zephyr_nmgr_tx_rsp(struct nmgr_streamer *ns, void *rsp, void *arg)
     rc = uart_nmgr_send(pkt->data, pkt->len);
     assert(rc == 0);
 
-    free(pkt);
+    mgmt_streamer_free_buf(&ns->ns_base, pkt);
     return MGMT_ERR_EOK;
 }
 
 static void
 zephyr_nmgr_free_buf(void *buf, void *arg)
 {
-    free(buf);
+    k_free(buf);
 }
 
 static int

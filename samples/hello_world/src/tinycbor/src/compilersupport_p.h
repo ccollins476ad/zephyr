@@ -39,7 +39,7 @@ extern "C" {
 #endif
 #include <assert.h>
 #include <float.h>
-#include <math.h>
+//#include <math.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
@@ -188,6 +188,14 @@ extern "C" {
 #  define likely(x)     (x)
 #  define unlikely(x)   (x)
 #  define unreachable() do {} while (0)
+#endif
+
+#ifndef INFINITY
+#define INFINITY 1e50f
+#endif
+
+#ifndef NAN
+#define NAN __nan()
 #endif
 
 static inline bool add_check_overflow(size_t v1, size_t v2, size_t *r)

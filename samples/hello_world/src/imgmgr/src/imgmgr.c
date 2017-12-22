@@ -31,15 +31,16 @@
 #include "imgmgr/imgmgr.h"
 #include "imgmgr_priv.h"
 
-//static int imgr_upload(struct mgmt_cbuf *);
-//static int imgr_erase(struct mgmt_cbuf *);
+#define IMGMGR_MAX_CHUNK_SIZE 512
+
+static int imgr_upload(struct mgmt_cbuf *);
+static int imgr_erase(struct mgmt_cbuf *);
 
 static const struct mgmt_handler imgr_nmgr_handlers[] = {
     [IMGMGR_NMGR_ID_STATE] = {
         .mh_read = imgmgr_state_read,
-        //.mh_write = imgmgr_state_write,
+        .mh_write = imgmgr_state_write,
     },
-#if 0
     [IMGMGR_NMGR_ID_UPLOAD] = {
         .mh_read = NULL,
         .mh_write = imgr_upload
@@ -48,6 +49,7 @@ static const struct mgmt_handler imgr_nmgr_handlers[] = {
         .mh_read = NULL,
         .mh_write = imgr_erase
     },
+#if 0
     [IMGMGR_NMGR_ID_CORELIST] = {
 #if MYNEWT_VAL(IMGMGR_COREDUMP)
         .mh_read = imgr_core_list,
@@ -78,8 +80,13 @@ static struct mgmt_group imgr_nmgr_group = {
     .mg_group_id = MGMT_GROUP_ID_IMAGE,
 };
 
-struct imgr_state imgr_state;
 static struct device *imgmgr_flash_dev;
+
+static struct {
+    uint32_t off;
+    uint32_t size;
+    int slot;
+} imgmgr_upload_state;
 
 struct imgmgr_bounds {
     off_t offset;
@@ -107,6 +114,43 @@ imgmgr_get_slot_bounds(int idx)
     }
 
     return imgmgr_slot_bounds + idx;
+}
+
+static int
+imgmgr_flash_check_empty(off_t offset, size_t size, bool *out_empty)
+{
+    uint32_t data[16];
+    off_t addr;
+    off_t end;
+    int bytes_to_read;
+    int rc;
+    int i;
+
+    assert(size % 4 == 0);
+
+    end = offset + size;
+    for (addr = offset; addr < end; addr += sizeof data) {
+        if (end - addr < sizeof data) {
+            bytes_to_read = end - addr;
+        } else {
+            bytes_to_read = sizeof data;
+        }
+
+        rc = flash_read(imgmgr_flash_dev, addr, data, bytes_to_read);
+        if (rc != 0) {
+            return MGMT_ERR_EUNKNOWN;
+        }
+
+        for (i = 0; i < bytes_to_read / 4; i++) {
+            if (data[i] != 0xffffffff) {
+                *out_empty = false;
+                return 0;
+            }
+        }
+    }
+
+    *out_empty = true;
+    return 0;
 }
 
 static int
@@ -309,14 +353,13 @@ imgmgr_find_best_slot(void)
     return best;
 }
 
-#if 0
 static int
 imgmgr_erase_slot(int slot_idx)
 {
     const struct imgmgr_bounds *bounds;
     int rc;
 
-    bounds = imgmgr_get_slot_bounds(slot);
+    bounds = imgmgr_get_slot_bounds(slot_idx);
     if (bounds == NULL) {
         return MGMT_ERR_EUNKNOWN;
     }
@@ -342,9 +385,36 @@ imgmgr_erase_slot(int slot_idx)
 }
 
 static int
+imgmgr_ensure_slot_erased(int slot_idx)
+{
+    const struct imgmgr_bounds *bounds;
+    bool empty;
+    int rc;
+
+    bounds = imgmgr_get_slot_bounds(slot_idx);
+    if (bounds == NULL) {
+        return MGMT_ERR_EUNKNOWN;
+    }
+
+    rc = imgmgr_flash_check_empty(bounds->offset, bounds->size, &empty);
+    if (rc != 0) {
+        return rc;
+    }
+
+    if (!empty) {
+        rc = imgmgr_erase_slot(slot_idx);
+        if (rc != 0) {
+            return rc;
+        }
+    }
+
+    return 0;
+}
+
+static int
 imgr_erase(struct mgmt_cbuf *cb)
 {
-    CborError g_err:
+    CborError err;
     int slot;
     int rc;
 
@@ -358,12 +428,92 @@ imgr_erase(struct mgmt_cbuf *cb)
 
     rc = imgmgr_erase_slot(slot);
 
-    g_err = 0;
-    g_err |= cbor_encode_text_stringz(&cb->encoder, "rc");
-    g_err |= cbor_encode_int(&cb->encoder, rc);
+    err = 0;
+    err |= cbor_encode_text_stringz(&cb->encoder, "rc");
+    err |= cbor_encode_int(&cb->encoder, rc);
 
-    if (g_err != 0) {
+    if (err != 0) {
         return MGMT_ERR_ENOMEM;
+    }
+
+    return 0;
+}
+
+static int
+imgmgr_write_upload_rsp(struct mgmt_cbuf *cb, int status)
+{
+    CborError err;
+
+    err = 0;
+    err |= cbor_encode_text_stringz(&cb->encoder, "rc");
+    err |= cbor_encode_int(&cb->encoder, status);
+    err |= cbor_encode_text_stringz(&cb->encoder, "off");
+    err |= cbor_encode_int(&cb->encoder, imgmgr_upload_state.off);
+
+    if (err != 0) {
+        return MGMT_ERR_ENOMEM;
+    }
+    return 0;
+}
+
+/* XXX: Rename */
+static int
+imgmgr_upload_first(struct mgmt_cbuf *cb, const uint8_t *req_data, size_t len)
+{
+    struct image_header hdr;
+    int slot;
+    int rc;
+
+    if (len < sizeof hdr) {
+        return MGMT_ERR_EINVAL;
+    }
+
+    memcpy(&hdr, req_data, sizeof hdr);
+    if (hdr.ih_magic != IMAGE_MAGIC) {
+        return MGMT_ERR_EINVAL;
+    }
+
+    slot = imgmgr_find_best_slot();
+    if (slot == -1) {
+        /* No free slot. */
+        return MGMT_ERR_ENOMEM;
+    }
+
+    rc = imgmgr_ensure_slot_erased(slot);
+    if (rc != 0) {
+        return rc;
+    }
+
+    imgmgr_upload_state.off = 0;
+    imgmgr_upload_state.size = 0;
+    imgmgr_upload_state.slot = slot;
+
+    return 0;
+}
+
+static int
+imgmgr_write_chunk(const uint8_t *data, size_t len)
+{
+    const struct imgmgr_bounds *bounds;
+    off_t offset;
+    int rc2;
+    int rc;
+
+    bounds = imgmgr_get_slot_bounds(imgmgr_upload_state.slot);
+    if (bounds == NULL) {
+        return MGMT_ERR_EUNKNOWN;
+    }
+
+    rc = flash_write_protection_set(imgmgr_flash_dev, false);
+    if (rc != 0) {
+        return MGMT_ERR_EUNKNOWN;
+    }
+
+    offset = bounds->offset + imgmgr_upload_state.off;
+    rc = flash_write(imgmgr_flash_dev, offset, data, len);
+    rc2 = flash_write_protection_set(imgmgr_flash_dev, true);
+    if (rc != 0 || rc2 != 0) {
+        return MGMT_ERR_EUNKNOWN;
     }
 
     return 0;
@@ -372,10 +522,12 @@ imgr_erase(struct mgmt_cbuf *cb)
 static int
 imgr_upload(struct mgmt_cbuf *cb)
 {
-    uint8_t img_data[MYNEWT_VAL(IMGMGR_MAX_CHUNK_SIZE)];
     long long unsigned int off = UINT_MAX;
     long long unsigned int size = UINT_MAX;
+    uint8_t img_data[IMGMGR_MAX_CHUNK_SIZE];
     size_t data_len = 0;
+    int rc;
+
     const struct cbor_attr_t off_attr[4] = {
         [0] = {
             .attribute = "data",
@@ -398,11 +550,6 @@ imgr_upload(struct mgmt_cbuf *cb)
         },
         [3] = { 0 },
     };
-    struct image_header *hdr;
-    int area_id;
-    int rc;
-    bool empty = false;
-    CborError g_err = CborNoError;
 
     rc = cbor_read_object(&cb->it, off_attr);
     if (rc || off == UINT_MAX) {
@@ -410,91 +557,39 @@ imgr_upload(struct mgmt_cbuf *cb)
     }
 
     if (off == 0) {
-        if (data_len < sizeof(struct image_header)) {
-            /*
-             * Image header is the first thing in the image.
-             */
+        rc = imgmgr_upload_first(cb, img_data, data_len);
+        if (rc != 0) {
+            return rc;
+        }
+        imgmgr_upload_state.size = size;
+    } else {
+        if (imgmgr_upload_state.slot == -1) {
             return MGMT_ERR_EINVAL;
         }
-        hdr = (struct image_header *)img_data;
-        if (hdr->ih_magic != IMAGE_MAGIC) {
-            return MGMT_ERR_EINVAL;
-        }
 
-        /*
-         * New upload.
-         */
-        imgr_state.upload.off = 0;
-        imgr_state.upload.size = size;
-
-        area_id = imgmgr_find_best_slot();
-        if (area_id >= 0) {
-            if (imgr_state.upload.fa) {
-                flash_area_close(imgr_state.upload.fa);
-                imgr_state.upload.fa = NULL;
-            }
-            rc = flash_area_open(area_id, &imgr_state.upload.fa);
-            if (rc) {
-                return MGMT_ERR_EINVAL;
-            }
-
-            rc = flash_area_is_empty(imgr_state.upload.fa, &empty);
-            if (rc) {
-                return MGMT_ERR_EINVAL;
-            }
-
-            if(!empty) {
-                rc = flash_area_erase(imgr_state.upload.fa, 0,
-                  imgr_state.upload.fa->fa_size);
-            }
-        } else {
-            /*
-             * No slot where to upload!
+        if (off != imgmgr_upload_state.off) {
+            /* Invalid offset. Drop the data, and respond with the offset we're
+             * expecting data for.
              */
-            return MGMT_ERR_ENOMEM;
-        }
-    } else if (off != imgr_state.upload.off) {
-        /*
-         * Invalid offset. Drop the data, and respond with the offset we're
-         * expecting data for.
-         */
-        goto out;
-    }
-
-    if (!imgr_state.upload.fa) {
-        return MGMT_ERR_EINVAL;
-    }
-    if (data_len) {
-        rc = flash_area_write(imgr_state.upload.fa, imgr_state.upload.off,
-          img_data, data_len);
-        if (rc) {
-            rc = MGMT_ERR_EINVAL;
-            goto err_close;
-        }
-        imgr_state.upload.off += data_len;
-        if (imgr_state.upload.size == imgr_state.upload.off) {
-            /* Done */
-            flash_area_close(imgr_state.upload.fa);
-            imgr_state.upload.fa = NULL;
+            /* XXX: Send error status? */
+            return imgmgr_write_upload_rsp(cb, 0);
         }
     }
 
-out:
-    g_err |= cbor_encode_text_stringz(&cb->encoder, "rc");
-    g_err |= cbor_encode_int(&cb->encoder, MGMT_ERR_EOK);
-    g_err |= cbor_encode_text_stringz(&cb->encoder, "off");
-    g_err |= cbor_encode_int(&cb->encoder, imgr_state.upload.off);
+    if (data_len > 0) {
+        rc = imgmgr_write_chunk(img_data, data_len);
+        if (rc != 0) {
+            return rc;
+        }
 
-    if (g_err) {
-        return MGMT_ERR_ENOMEM;
+        imgmgr_upload_state.off += data_len;
+        if (imgmgr_upload_state.off == imgmgr_upload_state.size) {
+            imgmgr_upload_state.slot = -1;
+        }
     }
-    return 0;
-err_close:
-    flash_area_close(imgr_state.upload.fa);
-    imgr_state.upload.fa = NULL;
-    return rc;
+
+    return imgmgr_write_upload_rsp(cb, 0);
 }
-#endif
 
 int
 imgmgr_group_register(void)

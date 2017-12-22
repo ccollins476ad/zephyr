@@ -87,16 +87,6 @@ struct os_mbuf;
 struct fs_file;
 struct mgmt_cbuf;
 
-struct imgr_state {
-    struct {
-        uint32_t off;
-        uint32_t size;
-        const struct flash_area *fa;
-    } upload;
-};
-
-extern struct imgr_state imgr_state;
-
 struct nmgr_jbuf;
 
 int imgr_core_list(struct mgmt_cbuf *);

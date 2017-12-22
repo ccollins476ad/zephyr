@@ -14,35 +14,53 @@
 #include "zephyr_nmgr/zephyr_nmgr.h"
 #include "znp/znp.h"
  
+K_FIFO_DEFINE(fifo_reqs);
+
+static struct k_work work_process_reqs;
+
+static int num_alloced;
+
 static struct zephyr_nmgr_pkt *
 alloc_pkt(void)
 {
     struct zephyr_nmgr_pkt *pkt;
 
-    pkt = malloc(sizeof *pkt);
+    pkt = k_malloc(sizeof *pkt);
     assert(pkt != NULL);
     pkt->len = 0;
 
+    num_alloced++;
     return pkt;
+}
+
+static void
+work_handler_process_reqs(struct k_work *work)
+{
+    struct zephyr_nmgr_pkt *pkt;
+
+    while ((pkt = k_fifo_get(&fifo_reqs, K_NO_WAIT)) != NULL) {
+        zephyr_nmgr_process_packet(pkt);
+    }
 }
 
 static void
 recv_cb(const uint8_t *buf, size_t len)
 {
     struct zephyr_nmgr_pkt *pkt;
-    int rc;
 
     pkt = alloc_pkt();
     memcpy(pkt->data, buf, len);
     pkt->len = len;
 
-    rc = zephyr_nmgr_process_packet(pkt);
-    assert(rc == 0);
+    k_fifo_put(&fifo_reqs, pkt);
+    k_work_submit(&work_process_reqs);
 }
 
 void main(void)
 {
     int rc;
+
+    k_work_init(&work_process_reqs, work_handler_process_reqs);
 
     rc = mgmt_os_group_register();
     assert(rc == 0);

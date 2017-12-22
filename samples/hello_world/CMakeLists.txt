@@ -63,7 +63,7 @@ target_sources(app PRIVATE
     src/tinycbor/src/cborparser_dup_string.c
     #src/tinycbor/src/cborpretty.c
     #src/tinycbor/src/cbortojson.c
-    src/tinycbor/src/cborvalidation.c
+    #src/tinycbor/src/cborvalidation.c
     src/znp/src/znp.c
 
     # MCUBoot.
@@ -76,6 +76,7 @@ target_sources(app PRIVATE
     #src/mcuboot/boot/bootutil/src/image_validate.c
     src/mcuboot/boot/bootutil/src/loader.c
     src/mcuboot/boot/zephyr/flash_map.c
+    src/mcuboot/boot/zephyr/hal_flash.c
 
     src/imgmgr/src/imgmgr.c
     src/imgmgr/src/imgmgr_state.c
