@@ -19,6 +19,7 @@
 
 #include <assert.h>
 
+#include <zephyr.h>
 #include "bootutil/image.h"
 #include "bootutil/bootutil.h"
 #include "cborattr/cborattr.h"
@@ -26,6 +27,13 @@
 #include "mgmt/mgmt.h"
 #include "imgmgr/imgmgr.h"
 #include "imgmgr_priv.h"
+#include "dfu/mcuboot.h"
+
+static int
+imgmgr_swap_type(void)
+{
+    return BOOT_SWAP_TYPE_NONE;
+}
 
 uint8_t
 imgmgr_state_flags(int query_slot)
@@ -40,7 +48,7 @@ imgmgr_state_flags(int query_slot)
     /* Determine if this is is pending or confirmed (only applicable for
      * unified images and loaders.
      */
-    swap_type = boot_swap_type();
+    swap_type = imgmgr_swap_type();
     switch (swap_type) {
     case BOOT_SWAP_TYPE_NONE:
         if (query_slot == 0) {
@@ -124,7 +132,7 @@ imgmgr_state_set_pending(int slot, int permanent)
         return MGMT_ERR_EUNKNOWN;
     }
 
-    rc = boot_set_pending(permanent);
+    rc = boot_request_upgrade(permanent);
     if (rc != 0) {
         return MGMT_ERR_EUNKNOWN;
     }
@@ -143,7 +151,7 @@ imgmgr_state_confirm(void)
     }
 
     /* Confirm the unified image or loader in slot 0. */
-    rc = boot_set_confirmed();
+    rc = boot_write_img_confirmed();
     if (rc != 0) {
         return MGMT_ERR_EUNKNOWN;
     }

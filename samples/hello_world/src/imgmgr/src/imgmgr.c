@@ -27,6 +27,7 @@
 #include "cborattr/cborattr.h"
 #include "mgmt/mgmt.h"
 
+#include "dfu/mcuboot.h"
 #include "bootutil/image.h"
 #include "imgmgr/imgmgr.h"
 #include "imgmgr_priv.h"
@@ -364,19 +365,7 @@ imgmgr_erase_slot(int slot_idx)
         return MGMT_ERR_EUNKNOWN;
     }
 
-    /* XXX: Call in to mcuboot? */
-
-    rc = flash_write_protection_set(imgmgr_flash_dev, false);
-    if (rc != 0) {
-        return MGMT_ERR_EUNKNOWN;
-    }
-
-    rc = flash_erase(imgmgr_flash_dev, bounds->offset, bounds->size);
-    if (rc != 0) {
-        return MGMT_ERR_EUNKNOWN;
-    }
-
-    rc = flash_write_protection_set(imgmgr_flash_dev, true);
+    rc = boot_erase_img_bank(bounds->offset);
     if (rc != 0) {
         return MGMT_ERR_EUNKNOWN;
     }
@@ -594,14 +583,10 @@ imgr_upload(struct mgmt_cbuf *cb)
 int
 imgmgr_group_register(void)
 {
-    extern struct device *boot_flash_device;
-
     imgmgr_flash_dev = device_get_binding(FLASH_DRIVER_NAME);
     if (imgmgr_flash_dev == NULL) {
         return -ENODEV;
     }
-
-    boot_flash_device = imgmgr_flash_dev;
 
     return mgmt_group_register(&imgr_nmgr_group);
 }
