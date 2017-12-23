@@ -71,9 +71,8 @@ uart_nmgr_decode_req(const u8_t *src, u8_t *dst, int max_dst_len)
 }
 
 static int
-uart_nmgr_parse_pkt(const u8_t *buf, int len, bool *first_frag)
+uart_nmgr_parse_op(const u8_t *buf, int len)
 {
-    int dec_len;
     uint16_t op;
 
     if (len < sizeof op) {
@@ -82,64 +81,85 @@ uart_nmgr_parse_pkt(const u8_t *buf, int len, bool *first_frag)
 
     memcpy(&op, buf, sizeof op);
     op = sys_be16_to_cpu(op);
-    switch (op) {
-    case SHELL_NLIP_PKT:
-        *first_frag = true;
-        break;
 
-    case SHELL_NLIP_DATA:
-        *first_frag = false;
-        break;
-
-    default:
+    if (op != SHELL_NLIP_PKT && op != SHELL_NLIP_DATA) {
         return -1;
     }
 
-    dec_len = uart_nmgr_decode_req(buf + 2,
+    return op;
+}
+
+static int
+uart_nmgr_parse_len(void)
+{
+    uint16_t len;
+
+    if (uart_nmgr_cur.off < sizeof len) {
+        return -1;
+    }
+
+    memcpy(&len, uart_nmgr_cur.buf, sizeof len);
+    return sys_be16_to_cpu(len);
+}
+
+static int
+uart_nmgr_decode_frag(const u8_t *buf, int len)
+{
+    int dec_len;
+
+    dec_len = uart_nmgr_decode_req(buf,
                                    uart_nmgr_cur.buf + uart_nmgr_cur.off,
                                    sizeof uart_nmgr_cur.buf - uart_nmgr_cur.off);
     if (dec_len == -1) {
         return -1;
     }
 
-    return dec_len;
+    uart_nmgr_cur.off += dec_len;
+
+    return 0;
 }
 
 static bool
 uart_nmgr_process_frag(const u8_t *buf, int len)
 {
-    uint16_t hdr_len;
     uint16_t crc;
-    bool first_frag;
-    int frag_len;
+    uint16_t op;
+    int rc;
 
-    frag_len = uart_nmgr_parse_pkt(buf, len, &first_frag);
-    if (frag_len == -1) {
-        return false;
-    }
-
-    if (!first_frag && uart_nmgr_cur.off == 0) {
-        return false;
-    }
-
-    if (first_frag) {
+    op = uart_nmgr_parse_op(buf, len);
+    switch (op) {
+    case SHELL_NLIP_PKT:
         uart_nmgr_cur.off = 0;
-        uart_nmgr_cur.hdr_len = 0;
+        break;
 
-        if (frag_len < sizeof hdr_len) {
+    case SHELL_NLIP_DATA:
+        if (uart_nmgr_cur.off == 0) {
+            return -1;
+        }
+        break;
+
+    default:
+        return false;
+    }
+
+    rc = uart_nmgr_decode_frag(buf + sizeof op, len - sizeof op);
+    if (rc != 0) {
+        return false;
+    }
+
+    if (op == SHELL_NLIP_PKT) {
+        rc = uart_nmgr_parse_len();
+        if (rc == -1) {
             return false;
         }
-
-        memcpy(&hdr_len, uart_nmgr_cur.buf, sizeof hdr_len);
-        uart_nmgr_cur.hdr_len = sys_be16_to_cpu(hdr_len);
+        uart_nmgr_cur.hdr_len = rc;
     }
 
-    uart_nmgr_cur.off += frag_len;
-    if (uart_nmgr_cur.off > uart_nmgr_cur.hdr_len + sizeof hdr_len) {
+    if (uart_nmgr_cur.off > uart_nmgr_cur.hdr_len + 2) {
         return false;
     }
 
-    if (uart_nmgr_cur.off < uart_nmgr_cur.hdr_len + sizeof hdr_len) {
+    if (uart_nmgr_cur.off < uart_nmgr_cur.hdr_len + 2) {
         return true;
     }
 

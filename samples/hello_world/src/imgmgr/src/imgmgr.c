@@ -28,6 +28,7 @@
 #include "mgmt/mgmt.h"
 
 #include "dfu/mcuboot.h"
+#include "dfu/flash_img.h"
 #include "bootutil/image.h"
 #include "imgmgr/imgmgr.h"
 #include "imgmgr_priv.h"
@@ -84,10 +85,11 @@ static struct mgmt_group imgr_nmgr_group = {
 static struct device *imgmgr_flash_dev;
 
 static struct {
-    uint32_t off;
-    uint32_t size;
-    int slot;
-} imgmgr_upload_state;
+    struct flash_img_context flash_ctxt;
+    off_t off;
+    size_t image_len;
+    bool uploading;
+} imgmgr_ctxt;
 
 struct imgmgr_bounds {
     off_t offset;
@@ -437,7 +439,7 @@ imgmgr_write_upload_rsp(struct mgmt_cbuf *cb, int status)
     err |= cbor_encode_text_stringz(&cb->encoder, "rc");
     err |= cbor_encode_int(&cb->encoder, status);
     err |= cbor_encode_text_stringz(&cb->encoder, "off");
-    err |= cbor_encode_int(&cb->encoder, imgmgr_upload_state.off);
+    err |= cbor_encode_int(&cb->encoder, imgmgr_ctxt.off);
 
     if (err != 0) {
         return MGMT_ERR_ENOMEM;
@@ -473,9 +475,10 @@ imgmgr_upload_first(struct mgmt_cbuf *cb, const uint8_t *req_data, size_t len)
         return rc;
     }
 
-    imgmgr_upload_state.off = 0;
-    imgmgr_upload_state.size = 0;
-    imgmgr_upload_state.slot = slot;
+    imgmgr_ctxt.uploading = true;
+    imgmgr_ctxt.off = 0;
+    imgmgr_ctxt.image_len = 0;
+    flash_img_init(&imgmgr_ctxt.flash_ctxt, imgmgr_flash_dev);
 
     return 0;
 }
@@ -483,25 +486,10 @@ imgmgr_upload_first(struct mgmt_cbuf *cb, const uint8_t *req_data, size_t len)
 static int
 imgmgr_write_chunk(const uint8_t *data, size_t len)
 {
-    const struct imgmgr_bounds *bounds;
-    off_t offset;
-    int rc2;
     int rc;
 
-    bounds = imgmgr_get_slot_bounds(imgmgr_upload_state.slot);
-    if (bounds == NULL) {
-        return MGMT_ERR_EUNKNOWN;
-    }
-
-    rc = flash_write_protection_set(imgmgr_flash_dev, false);
+    rc = flash_img_buffered_write(&imgmgr_ctxt.flash_ctxt, (void *)data, len, false);
     if (rc != 0) {
-        return MGMT_ERR_EUNKNOWN;
-    }
-
-    offset = bounds->offset + imgmgr_upload_state.off;
-    rc = flash_write(imgmgr_flash_dev, offset, data, len);
-    rc2 = flash_write_protection_set(imgmgr_flash_dev, true);
-    if (rc != 0 || rc2 != 0) {
         return MGMT_ERR_EUNKNOWN;
     }
 
@@ -550,17 +538,16 @@ imgr_upload(struct mgmt_cbuf *cb)
         if (rc != 0) {
             return rc;
         }
-        imgmgr_upload_state.size = size;
+        imgmgr_ctxt.image_len = size;
     } else {
-        if (imgmgr_upload_state.slot == -1) {
+        if (!imgmgr_ctxt.uploading) {
             return MGMT_ERR_EINVAL;
         }
 
-        if (off != imgmgr_upload_state.off) {
+        if (off != imgmgr_ctxt.off) {
             /* Invalid offset. Drop the data, and respond with the offset we're
              * expecting data for.
              */
-            /* XXX: Send error status? */
             return imgmgr_write_upload_rsp(cb, 0);
         }
     }
@@ -571,9 +558,13 @@ imgr_upload(struct mgmt_cbuf *cb)
             return rc;
         }
 
-        imgmgr_upload_state.off += data_len;
-        if (imgmgr_upload_state.off == imgmgr_upload_state.size) {
-            imgmgr_upload_state.slot = -1;
+        imgmgr_ctxt.off += data_len;
+        if (imgmgr_ctxt.off == imgmgr_ctxt.image_len) {
+            rc = flash_img_buffered_write(&imgmgr_ctxt.flash_ctxt, NULL, 0, true);
+            if (rc != 0) {
+                return MGMT_ERR_EUNKNOWN;
+            }
+            imgmgr_ctxt.uploading = false;
         }
     }
 
