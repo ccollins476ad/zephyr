@@ -29,8 +29,8 @@
 
 #include "dfu/mcuboot.h"
 #include "dfu/flash_img.h"
-#include "bootutil/image.h"
 #include "imgmgr/imgmgr.h"
+#include "imgmgr/image.h"
 #include "imgmgr_priv.h"
 
 #define IMGMGR_MAX_CHUNK_SIZE 512
@@ -122,7 +122,7 @@ imgmgr_get_slot_bounds(int idx)
 static int
 imgmgr_flash_check_empty(off_t offset, size_t size, bool *out_empty)
 {
-    uint32_t data[16];
+    uint32_t data[17];
     off_t addr;
     off_t end;
     int bytes_to_read;

@@ -20,12 +20,11 @@
 #include <assert.h>
 
 #include <zephyr.h>
-#include "bootutil/image.h"
-#include "bootutil/bootutil.h"
 #include "cborattr/cborattr.h"
 #include "cbor.h"
 #include "mgmt/mgmt.h"
 #include "imgmgr/imgmgr.h"
+#include "imgmgr/image.h"
 #include "imgmgr_priv.h"
 #include "dfu/mcuboot.h"
 

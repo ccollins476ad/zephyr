@@ -66,18 +66,6 @@ target_sources(app PRIVATE
     #src/tinycbor/src/cborvalidation.c
     src/znp/src/znp.c
 
-    # MCUBoot.
-    #src/mcuboot/boot/bootutil/src/bootutil_misc.c
-    #src/mcuboot/boot/bootutil/src/bootutil_priv.h
-    #src/mcuboot/boot/bootutil/src/caps.c
-    #src/mcuboot/boot/bootutil/src/image_ec.c
-    #src/mcuboot/boot/bootutil/src/image_ec256.c
-    #src/mcuboot/boot/bootutil/src/image_rsa.c
-    #src/mcuboot/boot/bootutil/src/image_validate.c
-    #src/mcuboot/boot/bootutil/src/loader.c
-    #src/mcuboot/boot/zephyr/flash_map.c
-    #src/mcuboot/boot/zephyr/hal_flash.c
-
     src/imgmgr/src/imgmgr.c
     src/imgmgr/src/imgmgr_state.c
     src/imgmgr/src/imgmgr_util.c

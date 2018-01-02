@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "bootutil/image.h"
+#include "imgmgr/image.h"
 #include "imgmgr/imgmgr.h"
 
 // Removed due to missing strsep().
