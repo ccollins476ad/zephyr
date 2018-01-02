@@ -29,12 +29,6 @@
 #include "imgmgr_priv.h"
 #include "dfu/mcuboot.h"
 
-static int
-imgmgr_swap_type(void)
-{
-    return BOOT_SWAP_TYPE_NONE;
-}
-
 uint8_t
 imgmgr_state_flags(int query_slot)
 {
@@ -48,7 +42,7 @@ imgmgr_state_flags(int query_slot)
     /* Determine if this is is pending or confirmed (only applicable for
      * unified images and loaders.
      */
-    swap_type = imgmgr_swap_type();
+    swap_type = boot_swap_type();
     switch (swap_type) {
     case BOOT_SWAP_TYPE_NONE:
         if (query_slot == 0) {
@@ -82,9 +76,7 @@ imgmgr_state_flags(int query_slot)
         break;
     }
 
-    /* Slot 0 is always active.  Slot 1 is also active if a split app is
-     * currently running.
-     */
+    /* Slot 0 is always active. */
     /* XXX: The slot 0 assumption only holds when running from flash. */
     if (query_slot == 0) {
         flags |= IMGMGR_STATE_F_ACTIVE;
