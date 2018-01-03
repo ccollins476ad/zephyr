@@ -1,0 +1,11 @@
+#ifndef H_SMP_BT_
+#define H_SMP_BT_
+
+#include <zephyr/types.h>
+struct bt_conn;
+
+typedef void (*smp_bt_cb)(struct bt_conn *conn, const u8_t *buf, size_t len);
+
+int smp_bt_register(smp_bt_cb cb);
+
+#endif
