@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/conn.h>
+#include <bluetooth/gatt.h>
 #include "console/uart_mcumgr.h"
 #include "mgmt_os/mgmt_os.h"
 #include "img/img.h"
@@ -66,10 +67,21 @@ tx_pkt_bt(struct zephyr_smp_transport *zst, struct zephyr_nmgr_pkt *pkt)
     int rc;
 
     rc = smp_bt_tx_rsp(pkt->extra, pkt->data, pkt->len);
-    bt_conn_unref(pkt->extra);
+    //bt_conn_unref(pkt->extra);
     k_free(pkt);
 
     return rc;
+}
+
+static uint16_t
+get_mtu_bt(const struct zephyr_nmgr_pkt *pkt)
+{
+    uint16_t mtu;
+
+    mtu = bt_gatt_get_mtu(pkt->extra);
+
+    /* 3 is the number of bytes for ATT notification base */
+    return mtu - 3;
 }
 
 static void
@@ -89,7 +101,7 @@ bt_recv_cb(struct bt_conn *conn, const u8_t *buf, size_t len)
 {
     struct zephyr_nmgr_pkt *pkt;
 
-    bt_conn_ref(conn);
+    //bt_conn_ref(conn);
 
     pkt = alloc_pkt();
     memcpy(pkt->data, buf, len);
@@ -161,7 +173,7 @@ void main(void)
     smp_bt_register(bt_recv_cb);
 
     zephyr_smp_transport_init(&uart_zst, tx_pkt_uart, NULL);
-    zephyr_smp_transport_init(&bt_zst, tx_pkt_bt, NULL);
+    zephyr_smp_transport_init(&bt_zst, tx_pkt_bt, get_mtu_bt);
 
     rc = bt_enable(bt_ready);
     if (rc != 0) {
