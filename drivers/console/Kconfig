@@ -168,9 +168,9 @@ config IPM_CONSOLE_INIT_PRIORITY
 	  Console has to be initialized after the IPM subsystem
 	  it uses.
 
-config	UART_NMGR
+config	UART_MCUMGR
 	bool
-	prompt "Enable newtmgr UART driver"
+	prompt "Enable mcumgr UART driver"
 	select UART_INTERRUPT_DRIVEN
 	default n
 	help
@@ -190,13 +190,13 @@ config	UART_PIPE
 	  data (as contrary to console UART driver) and all aspects of received
 	  protocol data are handled by application provided callback.
 
-config	UART_NMGR_ON_DEV_NAME
-	string "Device Name of UART Device for newtmgr UART"
+config	UART_MCUMGR_ON_DEV_NAME
+	string "Device Name of UART Device for mcumgr UART"
 	default "UART_0"
-	#depends on UART_NMGR
+	#depends on UART_MCUMGR
 	help
 	  This option specifies the name of UART device to be used
-	  for nmgr UART.
+	  for mcumgr UART.
 
 if !HAS_DTS
 config UART_PIPE_ON_DEV_NAME

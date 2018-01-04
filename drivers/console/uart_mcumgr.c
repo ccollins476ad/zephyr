@@ -1,7 +1,7 @@
 /** @file
  * @brief Pipe UART driver
  *
- * A nmgr UART driver allowing application to handle all aspects of received
+ * A mcumgr UART driver allowing application to handle all aspects of received
  * protocol data.
  */
 
@@ -20,34 +20,34 @@
 #include <uart.h>
 #include <crc16.h>
 
-#include <console/uart_nmgr.h>
+#include <console/uart_mcumgr.h>
 #include <misc/printk.h>
 
-static struct device *uart_nmgr_dev;
+static struct device *uart_mcumgr_dev;
 
-static uart_nmgr_recv_cb app_cb;
+static uart_mcumgr_recv_cb app_cb;
 
-#define UART_NMGR_BUF_SZ        1024
+#define UART_MCUMGR_BUF_SZ        1024
 #define SHELL_NLIP_PKT          0x0609
 #define SHELL_NLIP_DATA         0x0414
 #define SHELL_NLIP_MAX_FRAME    128
 
 static struct {
-    u8_t buf[UART_NMGR_BUF_SZ];
+    u8_t buf[UART_MCUMGR_BUF_SZ];
     int off;
 
     /* Length of payload as read from header. */
     uint16_t hdr_len;
-} uart_nmgr_cur;
+} uart_mcumgr_cur;
 
 static u16_t
-uart_nmgr_calc_crc(const u8_t *data, int len)
+uart_mcumgr_calc_crc(const u8_t *data, int len)
 {
     return crc16(data, len, 0x1021, 0, true);
 }
 
 static int
-uart_nmgr_find_nl(const u8_t *buf, int len)
+uart_mcumgr_find_nl(const u8_t *buf, int len)
 {
     int i;
 
@@ -61,7 +61,7 @@ uart_nmgr_find_nl(const u8_t *buf, int len)
 }
 
 static int
-uart_nmgr_decode_req(const u8_t *src, u8_t *dst, int max_dst_len)
+uart_mcumgr_decode_req(const u8_t *src, u8_t *dst, int max_dst_len)
 {
     if (base64_decode_len((char *)src) > max_dst_len) {
         return -1;
@@ -71,7 +71,7 @@ uart_nmgr_decode_req(const u8_t *src, u8_t *dst, int max_dst_len)
 }
 
 static int
-uart_nmgr_parse_op(const u8_t *buf, int len)
+uart_mcumgr_parse_op(const u8_t *buf, int len)
 {
     uint16_t op;
 
@@ -90,50 +90,50 @@ uart_nmgr_parse_op(const u8_t *buf, int len)
 }
 
 static int
-uart_nmgr_parse_len(void)
+uart_mcumgr_parse_len(void)
 {
     uint16_t len;
 
-    if (uart_nmgr_cur.off < sizeof len) {
+    if (uart_mcumgr_cur.off < sizeof len) {
         return -1;
     }
 
-    memcpy(&len, uart_nmgr_cur.buf, sizeof len);
+    memcpy(&len, uart_mcumgr_cur.buf, sizeof len);
     return sys_be16_to_cpu(len);
 }
 
 static int
-uart_nmgr_decode_frag(const u8_t *buf, int len)
+uart_mcumgr_decode_frag(const u8_t *buf, int len)
 {
     int dec_len;
 
-    dec_len = uart_nmgr_decode_req(buf,
-                                   uart_nmgr_cur.buf + uart_nmgr_cur.off,
-                                   sizeof uart_nmgr_cur.buf - uart_nmgr_cur.off);
+    dec_len = uart_mcumgr_decode_req(buf,
+                                   uart_mcumgr_cur.buf + uart_mcumgr_cur.off,
+                                   sizeof uart_mcumgr_cur.buf - uart_mcumgr_cur.off);
     if (dec_len == -1) {
         return -1;
     }
 
-    uart_nmgr_cur.off += dec_len;
+    uart_mcumgr_cur.off += dec_len;
 
     return 0;
 }
 
 static bool
-uart_nmgr_process_frag(const u8_t *buf, int len)
+uart_mcumgr_process_frag(const u8_t *buf, int len)
 {
     uint16_t crc;
     uint16_t op;
     int rc;
 
-    op = uart_nmgr_parse_op(buf, len);
+    op = uart_mcumgr_parse_op(buf, len);
     switch (op) {
     case SHELL_NLIP_PKT:
-        uart_nmgr_cur.off = 0;
+        uart_mcumgr_cur.off = 0;
         break;
 
     case SHELL_NLIP_DATA:
-        if (uart_nmgr_cur.off == 0) {
+        if (uart_mcumgr_cur.off == 0) {
             return -1;
         }
         break;
@@ -142,49 +142,49 @@ uart_nmgr_process_frag(const u8_t *buf, int len)
         return false;
     }
 
-    rc = uart_nmgr_decode_frag(buf + sizeof op, len - sizeof op);
+    rc = uart_mcumgr_decode_frag(buf + sizeof op, len - sizeof op);
     if (rc != 0) {
         return false;
     }
 
     if (op == SHELL_NLIP_PKT) {
-        rc = uart_nmgr_parse_len();
+        rc = uart_mcumgr_parse_len();
         if (rc == -1) {
             return false;
         }
-        uart_nmgr_cur.hdr_len = rc;
+        uart_mcumgr_cur.hdr_len = rc;
     }
 
-    if (uart_nmgr_cur.off > uart_nmgr_cur.hdr_len + 2) {
+    if (uart_mcumgr_cur.off > uart_mcumgr_cur.hdr_len + 2) {
         return false;
     }
 
-    if (uart_nmgr_cur.off < uart_nmgr_cur.hdr_len + 2) {
+    if (uart_mcumgr_cur.off < uart_mcumgr_cur.hdr_len + 2) {
         return true;
     }
 
-    crc = uart_nmgr_calc_crc(uart_nmgr_cur.buf + 2, uart_nmgr_cur.off - 2);
+    crc = uart_mcumgr_calc_crc(uart_mcumgr_cur.buf + 2, uart_mcumgr_cur.off - 2);
     if (crc == 0) {
-        app_cb(uart_nmgr_cur.buf + 2, uart_nmgr_cur.off - 4);
+        app_cb(uart_mcumgr_cur.buf + 2, uart_mcumgr_cur.off - 4);
     }
 
     return false;
 }
 
 static int
-uart_nmgr_read_chunk(void *buf, int cap)
+uart_mcumgr_read_chunk(void *buf, int cap)
 {
-    if (!uart_irq_rx_ready(uart_nmgr_dev)) {
+    if (!uart_irq_rx_ready(uart_mcumgr_dev)) {
         return 0;
     }
 
-    return uart_fifo_read(uart_nmgr_dev, buf, cap);
+    return uart_fifo_read(uart_mcumgr_dev, buf, cap);
 }
 
 static void
-uart_nmgr_isr(struct device *unused)
+uart_mcumgr_isr(struct device *unused)
 {
-    static uint8_t buf[UART_NMGR_BUF_SZ];
+    static uint8_t buf[UART_MCUMGR_BUF_SZ];
     static uint8_t buf_off;
     bool partial;
     int chunk_len;
@@ -194,10 +194,10 @@ uart_nmgr_isr(struct device *unused)
 
 	ARG_UNUSED(unused);
 
-	while (uart_irq_update(uart_nmgr_dev)
-	       && uart_irq_is_pending(uart_nmgr_dev)) {
+	while (uart_irq_update(uart_mcumgr_dev)
+	       && uart_irq_is_pending(uart_mcumgr_dev)) {
 
-        chunk_len = uart_nmgr_read_chunk(buf + buf_off, sizeof buf - buf_off);
+        chunk_len = uart_mcumgr_read_chunk(buf + buf_off, sizeof buf - buf_off);
         if (chunk_len == 0) {
             continue;
         }
@@ -206,14 +206,14 @@ uart_nmgr_isr(struct device *unused)
         buf_off += chunk_len;
 
         while (1) {
-            nl_off = uart_nmgr_find_nl(buf + old_off, buf_off - old_off);
+            nl_off = uart_mcumgr_find_nl(buf + old_off, buf_off - old_off);
             if (nl_off == -1) {
                 break;
             }
             nl_off += old_off;
 
             buf[nl_off] = '\0';
-            partial = uart_nmgr_process_frag(buf, nl_off);
+            partial = uart_mcumgr_process_frag(buf, nl_off);
 
             rem_len = buf_off - nl_off - 1;
             if (rem_len > 0) {
@@ -225,7 +225,7 @@ uart_nmgr_isr(struct device *unused)
             if (partial) {
                 break;
             } else {
-                uart_nmgr_cur.off = 0;
+                uart_mcumgr_cur.off = 0;
             }
         }
 
@@ -237,19 +237,19 @@ uart_nmgr_isr(struct device *unused)
 }
 
 static void
-uart_nmgr_send_raw(const void *data, int len)
+uart_mcumgr_send_raw(const void *data, int len)
 {
     const u8_t *u8p;
 
     u8p = data;
 	while (len--)  {
-		uart_poll_out(uart_nmgr_dev, *u8p++);
+		uart_poll_out(uart_mcumgr_dev, *u8p++);
 	}
 }
 
-int uart_nmgr_send(const u8_t *data, int len)
+int uart_mcumgr_send(const u8_t *data, int len)
 {
-    static u8_t buf[BASE64_ENCODE_SIZE(UART_NMGR_BUF_SZ)];
+    static u8_t buf[BASE64_ENCODE_SIZE(UART_MCUMGR_BUF_SZ)];
     u8_t tmp[3];
     uint16_t u16;
     uint16_t crc;
@@ -257,10 +257,10 @@ int uart_nmgr_send(const u8_t *data, int len)
     int rem;
     int i;
 
-    crc = uart_nmgr_calc_crc(data, len);
+    crc = uart_mcumgr_calc_crc(data, len);
 
     u16 = sys_cpu_to_be16(SHELL_NLIP_PKT);
-    uart_nmgr_send_raw(&u16, sizeof u16);
+    uart_mcumgr_send_raw(&u16, sizeof u16);
 
     u16 = sys_cpu_to_be16(len);
     memcpy(tmp, &u16, sizeof u16);
@@ -298,15 +298,15 @@ int uart_nmgr_send(const u8_t *data, int len)
         i += 3;
     }
 
-    uart_nmgr_send_raw(buf, off);
+    uart_mcumgr_send_raw(buf, off);
 
     tmp[0] = '\n';
-    uart_nmgr_send_raw(tmp, 1);
+    uart_mcumgr_send_raw(tmp, 1);
 
 	return 0;
 }
 
-static void uart_nmgr_setup(struct device *uart)
+static void uart_mcumgr_setup(struct device *uart)
 {
 	u8_t c;
 
@@ -318,18 +318,18 @@ static void uart_nmgr_setup(struct device *uart)
 		continue;
 	}
 
-	uart_irq_callback_set(uart, uart_nmgr_isr);
+	uart_irq_callback_set(uart, uart_mcumgr_isr);
 
 	uart_irq_rx_enable(uart);
 }
 
-void uart_nmgr_register(uart_nmgr_recv_cb cb)
+void uart_mcumgr_register(uart_mcumgr_recv_cb cb)
 {
 	app_cb = cb;
 
-	uart_nmgr_dev = device_get_binding(CONFIG_UART_NMGR_ON_DEV_NAME);
+	uart_mcumgr_dev = device_get_binding(CONFIG_UART_MCUMGR_ON_DEV_NAME);
 
-	if (uart_nmgr_dev != NULL) {
-		uart_nmgr_setup(uart_nmgr_dev);
+	if (uart_mcumgr_dev != NULL) {
+		uart_mcumgr_setup(uart_mcumgr_dev);
 	}
 }

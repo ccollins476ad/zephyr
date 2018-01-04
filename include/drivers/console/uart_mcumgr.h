@@ -1,7 +1,7 @@
 /** @file
  *  @brief Pipe UART driver header file.
  *
- *  A nmgr UART driver that allows applications to handle all aspects of
+ *  A mcumgr UART driver that allows applications to handle all aspects of
  *  received protocol data.
  */
 
@@ -30,7 +30,7 @@ extern "C" {
  *
  *  @return Buffer to be used on next receive.
  */
-typedef void (*uart_nmgr_recv_cb)(const u8_t *buf, size_t len);
+typedef void (*uart_mcumgr_recv_cb)(const u8_t *buf, size_t len);
 
 /** @brief Send data over UART.
  *
@@ -41,7 +41,7 @@ typedef void (*uart_nmgr_recv_cb)(const u8_t *buf, size_t len);
  *
  *  @return 0 on success or negative error
  */
-int uart_nmgr_send(const u8_t *data, int len);
+int uart_mcumgr_send(const u8_t *data, int len);
 
 /** @brief Register UART application.
  *
@@ -49,7 +49,7 @@ int uart_nmgr_send(const u8_t *data, int len);
  *
  *  @param cb Callback to be called on data reception.
  */
-void uart_nmgr_register(uart_nmgr_recv_cb cb);
+void uart_mcumgr_register(uart_mcumgr_recv_cb cb);
 
 #ifdef __cplusplus
 }
