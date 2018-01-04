@@ -37,6 +37,11 @@ static ssize_t smp_bt_chr_write(struct bt_conn *conn,
     return len;
 }
 
+static void smp_bt_ccc_changed(const struct bt_gatt_attr *attr, u16_t value)
+{
+}
+
+static struct bt_gatt_ccc_cfg smp_bt_ccc[BT_GATT_CCC_MAX] = {};
 static struct bt_gatt_attr smp_bt_attrs[] = {
     /* SMP Primary Service Declaration */
     BT_GATT_PRIMARY_SERVICE(&smp_bt_svc_uuid),
@@ -46,6 +51,7 @@ static struct bt_gatt_attr smp_bt_attrs[] = {
                    BT_GATT_CHRC_NOTIFY),
 	BT_GATT_DESCRIPTOR(&smp_bt_chr_uuid.uuid,
 			   BT_GATT_PERM_WRITE, NULL, smp_bt_chr_write, NULL),
+	BT_GATT_CCC(smp_bt_ccc, smp_bt_ccc_changed),
 };
 
 static struct bt_gatt_service smp_bt_svc = BT_GATT_SERVICE(smp_bt_attrs);
@@ -55,4 +61,9 @@ int smp_bt_register(smp_bt_cb cb)
 	smp_bt_recv_cb = cb;
 
     return bt_gatt_service_register(&smp_bt_svc);
+}
+
+int smp_bt_tx_rsp(struct bt_conn *conn, const void *data, u16_t len)
+{
+    return bt_gatt_notify(conn, smp_bt_attrs + 2, data, len);
 }

@@ -11,6 +11,7 @@ struct zephyr_nmgr_pkt {
     void *fifo_reserved;
     uint8_t data[ZEPHYR_NMGR_PKT_SZ];
     int len;
+    void *extra;
 };
 
 struct cbor_znp_reader {
