@@ -113,6 +113,18 @@ cbor_znp_reader_cpy(struct cbor_decoder_reader *d, char *dst, int offset,
     return (uintptr_t)memcpy(dst, czr->pkt->data + off, len);
 }
 
+static uintptr_t
+cbor_znp_get_string_chunk(struct cbor_decoder_reader *d, int offset, size_t *len)
+{
+    struct cbor_znp_reader *czr;
+    int off;
+
+    czr = (struct cbor_znp_reader *) d;
+    off = cbor_znp_reader_off(czr, offset);
+
+    return (uintptr_t)czr->pkt->data + off;
+}
+
 void
 cbor_znp_reader_init(struct cbor_znp_reader *czr,
                      struct zephyr_nmgr_pkt *pkt,
@@ -124,6 +136,7 @@ cbor_znp_reader_init(struct cbor_znp_reader *czr,
     czr->r.get64 = &cbor_znp_reader_get64;
     czr->r.cmp = &cbor_znp_reader_cmp;
     czr->r.cpy = &cbor_znp_reader_cpy;
+    czr->r.get_string_chunk = &cbor_znp_get_string_chunk;
 
     czr->pkt = pkt;
     czr->init_off = initial_offset;

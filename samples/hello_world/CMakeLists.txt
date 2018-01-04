@@ -55,8 +55,8 @@ target_sources(app PRIVATE
     src/mcumgr/img/src/img_state.c
     src/mcumgr/img/src/img_util.c
     src/mcumgr/mgmt/src/mgmt.c
-    src/mcumgr/newtmgr/port/zephyr/src/zephyr_nmgr.c
-    src/mcumgr/newtmgr/src/newtmgr.c
+    src/mcumgr/smp/port/zephyr/src/zephyr_smp.c
+    src/mcumgr/smp/src/smp.c
     src/mgmt_os/src/mgmt_os.c
     src/mgmt_os/src/mgmt_os.c
     src/tinycbor/src/cbor_buf_reader.c
@@ -77,8 +77,8 @@ target_include_directories(app PRIVATE
     src/cborattr/include
     src/mcumgr/img/include
     src/mcumgr/mgmt/include
-    src/mcumgr/newtmgr/include
-    src/mcumgr/newtmgr/port/zephyr/include
+    src/mcumgr/smp/include
+    src/mcumgr/smp/port/zephyr/include
     src/tinycbor/src
     src/znp/include
     src/mcuboot/boot/bootutil/include

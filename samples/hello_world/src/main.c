@@ -10,20 +10,20 @@
 #include <stdlib.h>
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/conn.h>
-#include "console/uart_nmgr.h"
+#include "console/uart_mcumgr.h"
 #include "mgmt_os/mgmt_os.h"
 #include "img/img.h"
-#include "zephyr_nmgr/zephyr_nmgr.h"
+#include "zephyr_smp/zephyr_smp.h"
 #include "znp/znp.h"
  
 K_FIFO_DEFINE(fifo_reqs);
 
-static struct k_work work_process_reqs;
+static struct zephyr_smp_transport uart_mcumgr_zst;
 
 static int num_alloced;
 
 /* XXX: TEMP */
-static struct bt_conn *prev_conn;
+//static struct bt_conn *prev_conn;
 
 static struct zephyr_nmgr_pkt *
 alloc_pkt(void)
@@ -38,14 +38,15 @@ alloc_pkt(void)
     return pkt;
 }
 
-static void
-work_handler_process_reqs(struct k_work *work)
+static int
+tx_pkt_uart(struct zephyr_smp_transport *zst, struct zephyr_nmgr_pkt *pkt)
 {
-    struct zephyr_nmgr_pkt *pkt;
+    int rc;
 
-    while ((pkt = k_fifo_get(&fifo_reqs, K_NO_WAIT)) != NULL) {
-        zephyr_nmgr_process_packet(pkt);
-    }
+    rc = uart_mcumgr_send(pkt->data, pkt->len);
+    k_free(pkt);
+
+    return rc;
 }
 
 static void
@@ -57,10 +58,10 @@ recv_cb(const uint8_t *buf, size_t len)
     memcpy(pkt->data, buf, len);
     pkt->len = len;
 
-    k_fifo_put(&fifo_reqs, pkt);
-    k_work_submit(&work_process_reqs);
+    zephyr_smp_rx_req(&uart_mcumgr_zst, pkt);
 }
 
+#if 0
 static void
 bt_recv_cb(struct bt_conn *conn, const u8_t *buf, size_t len)
 {
@@ -76,12 +77,11 @@ bt_recv_cb(struct bt_conn *conn, const u8_t *buf, size_t len)
     k_fifo_put(&fifo_reqs, pkt);
     k_work_submit(&work_process_reqs);
 }
+#endif
 
 void main(void)
 {
     int rc;
-
-    k_work_init(&work_process_reqs, work_handler_process_reqs);
 
     rc = mgmt_os_group_register();
     assert(rc == 0);
@@ -89,7 +89,9 @@ void main(void)
     rc = img_group_register();
     assert(rc == 0);
 
-    uart_nmgr_register(recv_cb);
+    uart_mcumgr_register(recv_cb);
+
+    zephyr_smp_transport_init(&uart_mcumgr_zst, tx_pkt_uart, NULL);
 
     while (1) { }
 }
