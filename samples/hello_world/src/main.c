@@ -12,8 +12,8 @@
 #include <bluetooth/conn.h>
 #include <bluetooth/gatt.h>
 #include "console/uart_mcumgr.h"
-#include "mgmt_os/mgmt_os.h"
-#include "img/img_mgmt.h"
+#include "os_mgmt/os_mgmt.h"
+#include "img_mgmt/img_mgmt.h"
 #include "mgmt/smp_bt.h"
 #include "zephyr_smp/zephyr_smp.h"
 #include "znp/znp.h"
@@ -187,17 +187,16 @@ void main(void)
 {
     int rc;
 
-    rc = mgmt_os_group_register();
+    rc = os_mgmt_group_register();
     assert(rc == 0);
 
     rc = img_mgmt_group_register();
     assert(rc == 0);
 
     uart_mcumgr_register(recv_cb);
-    smp_bt_register(bt_recv_cb);
 
-    zephyr_smp_transport_init(&uart_zst, tx_pkt_uart, NULL);
     zephyr_smp_transport_init(&bt_zst, tx_pkt_bt, get_mtu_bt);
+    zephyr_smp_transport_init(&uart_zst, tx_pkt_uart, NULL);
 
     rc = bt_enable(bt_ready);
     if (rc != 0) {
@@ -205,7 +204,9 @@ void main(void)
         return;
     }
 
+    smp_bt_register(bt_recv_cb);
+
     bt_conn_cb_register(&conn_callbacks);
 
-    while (1) { }
+    k_sleep(INT32_MAX);
 }
