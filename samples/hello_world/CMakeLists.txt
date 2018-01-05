@@ -50,14 +50,13 @@ endif()
 target_sources(app PRIVATE
     src/cborattr/src/cborattr.c
     src/main.c
-    src/mcumgr/img/port/zephyr/src/zephyr_img.c
-    src/mcumgr/img/src/img.c
-    src/mcumgr/img/src/img_state.c
-    src/mcumgr/img/src/img_util.c
+    src/mcumgr/cmd/img/port/zephyr/src/zephyr_img.c
+    src/mcumgr/cmd/img/src/img_mgmt.c
+    src/mcumgr/cmd/img/src/img_mgmt_state.c
+    src/mcumgr/cmd/img/src/img_mgmt_util.c
     src/mcumgr/mgmt/src/mgmt.c
     src/mcumgr/smp/port/zephyr/src/zephyr_smp.c
     src/mcumgr/smp/src/smp.c
-    src/mgmt_os/src/mgmt_os.c
     src/mgmt_os/src/mgmt_os.c
     src/tinycbor/src/cbor_buf_reader.c
     src/tinycbor/src/cbor_buf_writer.c
@@ -73,15 +72,15 @@ target_sources(app PRIVATE
 )
 
 target_include_directories(app PRIVATE
-    src/mgmt_os/include
     src/cborattr/include
-    src/mcumgr/img/include
-    src/mcumgr/mgmt/include
-    src/mcumgr/smp/include
-    src/mcumgr/smp/port/zephyr/include
-    src/tinycbor/src
-    src/znp/include
     src/mcuboot/boot/bootutil/include
     src/mcuboot/boot/bootutil/src
     src/mcuboot/boot/zephyr/include
+    src/mcumgr/cmd/img/include
+    src/mcumgr/mgmt/include
+    src/mcumgr/smp/include
+    src/mcumgr/smp/port/zephyr/include
+    src/mgmt_os/include
+    src/tinycbor/src
+    src/znp/include
 )

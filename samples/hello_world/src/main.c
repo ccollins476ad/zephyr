@@ -13,7 +13,7 @@
 #include <bluetooth/gatt.h>
 #include "console/uart_mcumgr.h"
 #include "mgmt_os/mgmt_os.h"
-#include "img/img.h"
+#include "img/img_mgmt.h"
 #include "mgmt/smp_bt.h"
 #include "zephyr_smp/zephyr_smp.h"
 #include "znp/znp.h"
@@ -166,7 +166,7 @@ void main(void)
     rc = mgmt_os_group_register();
     assert(rc == 0);
 
-    rc = img_group_register();
+    rc = img_mgmt_group_register();
     assert(rc == 0);
 
     uart_mcumgr_register(recv_cb);
