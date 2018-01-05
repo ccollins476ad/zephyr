@@ -50,6 +50,15 @@ alloc_pkt(void)
     return pkt;
 }
 
+static struct bt_conn *
+conn_from_pkt(const struct zephyr_nmgr_pkt *pkt)
+{
+    bt_addr_le_t addr;
+
+    memcpy(&addr, pkt->extra, sizeof addr);
+    return bt_conn_lookup_addr_le(&addr);
+}
+
 static int
 tx_pkt_uart(struct zephyr_smp_transport *zst, struct zephyr_nmgr_pkt *pkt)
 {
@@ -64,10 +73,17 @@ tx_pkt_uart(struct zephyr_smp_transport *zst, struct zephyr_nmgr_pkt *pkt)
 static int
 tx_pkt_bt(struct zephyr_smp_transport *zst, struct zephyr_nmgr_pkt *pkt)
 {
+    struct bt_conn *conn;
     int rc;
 
-    rc = smp_bt_tx_rsp(pkt->extra, pkt->data, pkt->len);
-    //bt_conn_unref(pkt->extra);
+    conn = conn_from_pkt(pkt);
+    if (conn == NULL) {
+        rc = -1;
+    } else {
+        rc = smp_bt_tx_rsp(conn, pkt->data, pkt->len);
+        bt_conn_unref(conn);
+    }
+
     k_free(pkt);
 
     return rc;
@@ -76,9 +92,16 @@ tx_pkt_bt(struct zephyr_smp_transport *zst, struct zephyr_nmgr_pkt *pkt)
 static uint16_t
 get_mtu_bt(const struct zephyr_nmgr_pkt *pkt)
 {
+    struct bt_conn *conn;
     uint16_t mtu;
 
-    mtu = bt_gatt_get_mtu(pkt->extra);
+    conn = conn_from_pkt(pkt);
+    if (conn == NULL) {
+        return 0;
+    }
+
+    mtu = bt_gatt_get_mtu(conn);
+    bt_conn_unref(conn);
 
     /* 3 is the number of bytes for ATT notification base */
     return mtu - 3;
@@ -100,13 +123,14 @@ static void
 bt_recv_cb(struct bt_conn *conn, const u8_t *buf, size_t len)
 {
     struct zephyr_nmgr_pkt *pkt;
-
-    //bt_conn_ref(conn);
+    const bt_addr_le_t *addr;
 
     pkt = alloc_pkt();
     memcpy(pkt->data, buf, len);
     pkt->len = len;
-    pkt->extra = conn;
+
+    addr = bt_conn_get_dst(conn);
+    memcpy(pkt->extra, addr, sizeof *addr);
 
     zephyr_smp_rx_req(&bt_zst, pkt);
 }

@@ -5,13 +5,14 @@
 #include "cbor_encoder_writer.h"
 #include "cbor_decoder_reader.h"
 
-#define ZEPHYR_NMGR_PKT_SZ      512
+#define ZEPHYR_NMGR_PKT_SZ          512
+#define ZEPHYR_NMGR_PKT_EXTRA_SZ    8
 
 struct zephyr_nmgr_pkt {
     void *fifo_reserved;
     uint8_t data[ZEPHYR_NMGR_PKT_SZ];
     int len;
-    void *extra;
+    uint8_t extra[ZEPHYR_NMGR_PKT_EXTRA_SZ];
 };
 
 struct cbor_znp_reader {
