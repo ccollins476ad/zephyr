@@ -5,7 +5,7 @@
 #include "cbor_encoder_writer.h"
 #include "cbor_decoder_reader.h"
 
-#define ZEPHYR_NMGR_PKT_SZ          512
+#define ZEPHYR_NMGR_PKT_SZ          1024
 #define ZEPHYR_NMGR_PKT_EXTRA_SZ    8
 
 struct zephyr_nmgr_pkt {

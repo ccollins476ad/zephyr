@@ -208,5 +208,7 @@ void main(void)
 
     bt_conn_cb_register(&conn_callbacks);
 
-    k_sleep(INT32_MAX);
+    while (1) {
+        k_sleep(INT32_MAX);
+    }
 }

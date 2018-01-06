@@ -54,7 +54,9 @@ target_sources(app PRIVATE
     src/mcumgr/cmd/img_mgmt/src/img_mgmt.c
     src/mcumgr/cmd/img_mgmt/src/img_mgmt_state.c
     src/mcumgr/cmd/img_mgmt/src/img_mgmt_util.c
+    src/mcumgr/cmd/img_mgmt/src/stubs.c
     src/mcumgr/cmd/os_mgmt/src/os_mgmt.c
+    src/mcumgr/cmd/os_mgmt/src/stubs.c
     src/mcumgr/cmd/os_mgmt/port/zephyr/src/zephyr_os_mgmt.c
     src/mcumgr/mgmt/src/mgmt.c
     src/mcumgr/smp/port/zephyr/src/zephyr_smp.c
