@@ -48,42 +48,11 @@ if (NOT DEFINED FROM_WHO)
 endif()
 
 target_sources(app PRIVATE
-    src/cborattr/src/cborattr.c
     src/main.c
-    src/mcumgr/cmd/img_mgmt/port/zephyr/src/zephyr_img_mgmt.c
-    src/mcumgr/cmd/img_mgmt/src/img_mgmt.c
-    src/mcumgr/cmd/img_mgmt/src/img_mgmt_state.c
-    src/mcumgr/cmd/img_mgmt/src/img_mgmt_util.c
-    src/mcumgr/cmd/img_mgmt/src/stubs.c
-    src/mcumgr/cmd/os_mgmt/src/os_mgmt.c
-    src/mcumgr/cmd/os_mgmt/src/stubs.c
-    src/mcumgr/cmd/os_mgmt/port/zephyr/src/zephyr_os_mgmt.c
-    src/mcumgr/mgmt/src/mgmt.c
-    src/mcumgr/smp/port/zephyr/src/zephyr_smp.c
-    src/mcumgr/smp/src/smp.c
-    src/tinycbor/src/cbor_buf_reader.c
-    src/tinycbor/src/cbor_buf_writer.c
-    src/tinycbor/src/cborencoder.c
-    src/tinycbor/src/cborerrorstrings.c
-    src/tinycbor/src/cborparser.c
-    src/tinycbor/src/cborparser_dup_string.c
-    #src/tinycbor/src/cborpretty.c
-    #src/tinycbor/src/cbortojson.c
-    #src/tinycbor/src/cborvalidation.c
-    src/znp/src/znp.c
-
 )
 
 target_include_directories(app PRIVATE
-    src/cborattr/include
     src/mcuboot/boot/bootutil/include
     src/mcuboot/boot/bootutil/src
     src/mcuboot/boot/zephyr/include
-    src/mcumgr/cmd/img_mgmt/include
-    src/mcumgr/cmd/os_mgmt/include
-    src/mcumgr/mgmt/include
-    src/mcumgr/smp/include
-    src/mcumgr/smp/port/zephyr/include
-    src/tinycbor/src
-    src/znp/include
 )

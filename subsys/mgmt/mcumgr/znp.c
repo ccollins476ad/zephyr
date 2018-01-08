@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <string.h>
 #include "compilersupport_p.h"
-#include "znp/znp.h"
+#include "mgmt/znp.h"
 
 static int
 cbor_znp_reader_off(const struct cbor_znp_reader *czr, int offset)

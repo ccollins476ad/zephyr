@@ -16,12 +16,9 @@
 #include "img_mgmt/img_mgmt.h"
 #include "mgmt/smp_bt.h"
 #include "zephyr_smp/zephyr_smp.h"
-#include "znp/znp.h"
+#include "mgmt/znp.h"
  
-K_FIFO_DEFINE(fifo_reqs);
-
 static struct zephyr_smp_transport uart_zst;
-static struct zephyr_smp_transport bt_zst;
 
 static int num_alloced;
 
@@ -37,7 +34,7 @@ static const struct bt_data sd[] = {
     BT_DATA(BT_DATA_NAME_COMPLETE, DEVICE_NAME, DEVICE_NAME_LEN),
 };
 
-static struct zephyr_nmgr_pkt *
+struct zephyr_nmgr_pkt *
 alloc_pkt(void)
 {
     struct zephyr_nmgr_pkt *pkt;
@@ -48,15 +45,6 @@ alloc_pkt(void)
 
     num_alloced++;
     return pkt;
-}
-
-static struct bt_conn *
-conn_from_pkt(const struct zephyr_nmgr_pkt *pkt)
-{
-    bt_addr_le_t addr;
-
-    memcpy(&addr, pkt->extra, sizeof addr);
-    return bt_conn_lookup_addr_le(&addr);
 }
 
 static int
@@ -70,43 +58,6 @@ tx_pkt_uart(struct zephyr_smp_transport *zst, struct zephyr_nmgr_pkt *pkt)
     return rc;
 }
 
-static int
-tx_pkt_bt(struct zephyr_smp_transport *zst, struct zephyr_nmgr_pkt *pkt)
-{
-    struct bt_conn *conn;
-    int rc;
-
-    conn = conn_from_pkt(pkt);
-    if (conn == NULL) {
-        rc = -1;
-    } else {
-        rc = smp_bt_tx_rsp(conn, pkt->data, pkt->len);
-        bt_conn_unref(conn);
-    }
-
-    k_free(pkt);
-
-    return rc;
-}
-
-static uint16_t
-get_mtu_bt(const struct zephyr_nmgr_pkt *pkt)
-{
-    struct bt_conn *conn;
-    uint16_t mtu;
-
-    conn = conn_from_pkt(pkt);
-    if (conn == NULL) {
-        return 0;
-    }
-
-    mtu = bt_gatt_get_mtu(conn);
-    bt_conn_unref(conn);
-
-    /* 3 is the number of bytes for ATT notification base */
-    return mtu - 3;
-}
-
 static void
 recv_cb(const uint8_t *buf, size_t len)
 {
@@ -117,22 +68,6 @@ recv_cb(const uint8_t *buf, size_t len)
     pkt->len = len;
 
     zephyr_smp_rx_req(&uart_zst, pkt);
-}
-
-static void
-bt_recv_cb(struct bt_conn *conn, const u8_t *buf, size_t len)
-{
-    struct zephyr_nmgr_pkt *pkt;
-    const bt_addr_le_t *addr;
-
-    pkt = alloc_pkt();
-    memcpy(pkt->data, buf, len);
-    pkt->len = len;
-
-    addr = bt_conn_get_dst(conn);
-    memcpy(pkt->extra, addr, sizeof *addr);
-
-    zephyr_smp_rx_req(&bt_zst, pkt);
 }
 
 static void advertise(void)
@@ -195,7 +130,6 @@ void main(void)
 
     uart_mcumgr_register(recv_cb);
 
-    zephyr_smp_transport_init(&bt_zst, tx_pkt_bt, get_mtu_bt);
     zephyr_smp_transport_init(&uart_zst, tx_pkt_uart, NULL);
 
     rc = bt_enable(bt_ready);
@@ -204,7 +138,7 @@ void main(void)
         return;
     }
 
-    smp_bt_register(bt_recv_cb);
+    smp_bt_register();
 
     bt_conn_cb_register(&conn_callbacks);
 
