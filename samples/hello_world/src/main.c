@@ -11,15 +11,11 @@
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/conn.h>
 #include <bluetooth/gatt.h>
-#include "console/uart_mcumgr.h"
 #include "os_mgmt/os_mgmt.h"
 #include "img_mgmt/img_mgmt.h"
 #include "mgmt/smp_bt.h"
-#include "zephyr_smp/zephyr_smp.h"
 #include "mgmt/znp.h"
  
-static struct zephyr_smp_transport uart_zst;
-
 static int num_alloced;
 
 #define DEVICE_NAME         CONFIG_BT_DEVICE_NAME
@@ -45,29 +41,6 @@ alloc_pkt(void)
 
     num_alloced++;
     return pkt;
-}
-
-static int
-tx_pkt_uart(struct zephyr_smp_transport *zst, struct zephyr_nmgr_pkt *pkt)
-{
-    int rc;
-
-    rc = uart_mcumgr_send(pkt->data, pkt->len);
-    k_free(pkt);
-
-    return rc;
-}
-
-static void
-recv_cb(const uint8_t *buf, size_t len)
-{
-    struct zephyr_nmgr_pkt *pkt;
-
-    pkt = alloc_pkt();
-    memcpy(pkt->data, buf, len);
-    pkt->len = len;
-
-    zephyr_smp_rx_req(&uart_zst, pkt);
 }
 
 static void advertise(void)
@@ -127,10 +100,6 @@ void main(void)
 
     rc = img_mgmt_group_register();
     assert(rc == 0);
-
-    uart_mcumgr_register(recv_cb);
-
-    zephyr_smp_transport_init(&uart_zst, tx_pkt_uart, NULL);
 
     rc = bt_enable(bt_ready);
     if (rc != 0) {

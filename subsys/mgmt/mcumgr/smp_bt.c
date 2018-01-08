@@ -70,7 +70,7 @@ int smp_bt_register(void)
     return bt_gatt_service_register(&smp_bt_svc);
 }
 
-int smp_bt_tx_rsp(struct bt_conn *conn, const void *data, u16_t len)
+static int smp_bt_tx_rsp(struct bt_conn *conn, const void *data, u16_t len)
 {
     return bt_gatt_notify(conn, smp_bt_attrs + 2, data, len);
 }
