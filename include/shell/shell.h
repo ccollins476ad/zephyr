@@ -44,6 +44,7 @@ struct shell_module {
 	shell_prompt_function_t prompt;
 };
 
+typedef int (*shell_nlip_function_t)(const char *line, void *arg);
 
 /**
  * @brief Kernel Shell API
@@ -122,6 +123,8 @@ void shell_register_prompt_handler(shell_prompt_function_t handler);
  *  @param name Module name.
  */
 void shell_register_default_module(const char *name);
+
+void shell_register_nlip_handler(shell_nlip_function_t handler, void *arg);
 
 /** @brief Execute command line.
  *

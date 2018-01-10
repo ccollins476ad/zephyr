@@ -32,8 +32,11 @@
 #include <linker/sections.h>
 #include <atomic.h>
 #include <misc/printk.h>
+#include "mgmt/serial.h"
 
 static struct device *uart_console_dev;
+
+static bool uart_console_echo_enabled = true;
 
 #ifdef CONFIG_UART_CONSOLE_DEBUG_SERVER_HOOKS
 
@@ -148,6 +151,11 @@ static u8_t (*completion_cb)(char *line, u8_t len);
 #define ANSI_HOME          'H'
 #define ANSI_DEL           '~'
 
+static void uart_console_set_echo(bool enabled)
+{
+    uart_console_echo_enabled = enabled;
+}
+
 static int read_uart(struct device *uart, u8_t *buf, unsigned int size)
 {
 	int rx;
@@ -188,7 +196,9 @@ static void insert_char(char *pos, char c, u8_t end)
 	char tmp;
 
 	/* Echo back to console */
-	uart_poll_out(uart_console_dev, c);
+    if (uart_console_echo_enabled) {
+        uart_poll_out(uart_console_dev, c);
+    }
 
 	if (end == 0) {
 		*pos = c;
@@ -239,7 +249,11 @@ enum {
 	ESC_ANSI,
 	ESC_ANSI_FIRST,
 	ESC_ANSI_VAL,
-	ESC_ANSI_VAL_2
+	ESC_ANSI_VAL_2,
+    ESC_NLIP_PKT,
+    ESC_NLIP_PKT_2,
+    ESC_NLIP_DATA,
+    ESC_NLIP_DATA_2,
 };
 
 static atomic_t esc_state;
@@ -335,6 +349,85 @@ ansi_cmd:
 	atomic_clear_bit(&esc_state, ESC_ANSI);
 }
 
+static void
+clear_nlip(void)
+{
+    atomic_clear_bit(&esc_state, ESC_NLIP_PKT);
+    atomic_clear_bit(&esc_state, ESC_NLIP_PKT_2);
+    atomic_clear_bit(&esc_state, ESC_NLIP_DATA);
+    atomic_clear_bit(&esc_state, ESC_NLIP_DATA_2);
+}
+
+static int
+read_nlip_byte(uint8_t byte)
+{
+    bool data_1;
+    bool data_2;
+    bool pkt_1;
+    bool pkt_2;
+
+    pkt_1 = atomic_test_bit(&esc_state, ESC_NLIP_PKT);
+    pkt_2 = atomic_test_bit(&esc_state, ESC_NLIP_PKT_2);
+    data_1 = atomic_test_bit(&esc_state, ESC_NLIP_DATA);
+    data_2 = atomic_test_bit(&esc_state, ESC_NLIP_DATA_2);
+
+    if (pkt_2 || data_2) {
+        return 2;
+    }
+
+    if (pkt_1) {
+        if (byte == SHELL_NLIP_PKT_2) {
+            atomic_set_bit(&esc_state, ESC_NLIP_PKT_2);
+            return 2;
+        }
+    } else if (data_1) {
+        if (byte == SHELL_NLIP_DATA_2) {
+            atomic_set_bit(&esc_state, ESC_NLIP_DATA_2);
+            return 2;
+        }
+    } else {
+        clear_nlip();
+        if (byte == SHELL_NLIP_PKT_1) {
+            atomic_set_bit(&esc_state, ESC_NLIP_PKT);
+            uart_console_set_echo(false);
+            return 1;
+        } else if (byte == SHELL_NLIP_DATA_1) {
+            atomic_set_bit(&esc_state, ESC_NLIP_DATA);
+            uart_console_set_echo(false);
+            return 1;
+        }
+    }
+
+    uart_console_set_echo(true);
+    return 0;
+}
+
+static bool
+handle_nlip(struct console_input *cmd, uint8_t byte)
+{
+    int nlip_state;
+
+    nlip_state = read_nlip_byte(byte);
+    if (nlip_state == 0) {
+        return false;
+    }
+
+    if (cur + end < sizeof(cmd->line) - 1) {
+        insert_char(&cmd->line[cur++], byte, end);
+    }
+    if (nlip_state == 2 && byte == '\n') {
+        cmd->line[cur + end] = '\0';
+        k_fifo_put(lines_queue, cmd);
+
+        clear_nlip();
+        cmd = NULL;
+        cur = 0;
+        end = 0;
+    }
+
+    return true;
+}
+
 void uart_console_isr(struct device *unused)
 {
 	ARG_UNUSED(unused);
@@ -373,6 +466,13 @@ void uart_console_isr(struct device *unused)
 			}
 		}
 
+        /* Divert this byte from the shell if it is part of a management
+         * command.
+         */
+        if (handle_nlip(cmd, byte)) {
+            continue;
+        }
+
 		/* Handle ANSI escape mode */
 		if (atomic_test_bit(&esc_state, ESC_ANSI)) {
 			handle_ansi(byte, cmd->line);
@@ -389,8 +489,8 @@ void uart_console_isr(struct device *unused)
 			continue;
 		}
 
-		/* Handle special control characters */
-		if (!isprint(byte)) {
+        if (!isprint(byte)) {
+            /* Handle special control characters */
 			switch (byte) {
 			case DEL:
 				if (cur > 0) {
@@ -417,15 +517,13 @@ void uart_console_isr(struct device *unused)
 			default:
 				break;
 			}
-
-			continue;
 		}
 
-		/* Ignore characters if there's no more buffer space */
-		if (cur + end < sizeof(cmd->line) - 1) {
-			insert_char(&cmd->line[cur++], byte, end);
-		}
-	}
+        /* Ignore characters if there's no more buffer space */
+        if (cur + end < sizeof(cmd->line) - 1) {
+            insert_char(&cmd->line[cur++], byte, end);
+        }
+    }
 }
 
 static void console_input_init(void)

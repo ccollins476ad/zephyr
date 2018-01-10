@@ -9,6 +9,11 @@
 #define SHELL_NLIP_DATA         0x0414
 #define SHELL_NLIP_MAX_FRAME    128
 
+#define SHELL_NLIP_PKT_1        (SHELL_NLIP_PKT >> 8)
+#define SHELL_NLIP_PKT_2        (SHELL_NLIP_PKT & 0xff)
+#define SHELL_NLIP_DATA_1       (SHELL_NLIP_DATA >> 8)
+#define SHELL_NLIP_DATA_2       (SHELL_NLIP_DATA & 0xff)
+
 struct mcumgr_serial_rx_ctxt {
     u8_t *buf;
     int buf_size;

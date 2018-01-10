@@ -66,7 +66,6 @@ uart_mcumgr_isr(struct device *unused)
                                              &pkt, &pkt_len);
             if (complete) {
                 app_cb(pkt, pkt_len);
-                uart_mcumgr_rx_ctxt.raw_off = 0;
             }
         }
 	}

@@ -168,10 +168,11 @@ mcumgr_serial_rx_byte(struct mcumgr_serial_rx_ctxt *rx_ctxt, u8_t byte,
         rx_ctxt->b64_len = 0;
         return false;
     } else {
-        rx_ctxt->b64_off = 0;
-        rx_ctxt->b64_len = 0;
         *out_pkt = rx_ctxt->buf + 2;
         *out_len = rx_ctxt->raw_off - 4;
+        rx_ctxt->raw_off = 0;
+        rx_ctxt->b64_off = 0;
+        rx_ctxt->b64_len = 0;
         return true;
     }
 }
