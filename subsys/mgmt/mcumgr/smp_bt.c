@@ -15,7 +15,7 @@
 #include <bluetooth/gatt.h>
 
 #include <mgmt/smp_bt.h>
-#include <mgmt/znp.h>
+#include <mgmt/buf.h>
 
 #include <zephyr_smp/zephyr_smp.h>
 
@@ -33,7 +33,6 @@ static struct bt_uuid_128 smp_bt_chr_uuid = BT_UUID_INIT_128(
     0x48, 0x7c, 0x99, 0x74, 0x11, 0x26, 0x9e, 0xae,
     0x01, 0x4e, 0xce, 0xfb, 0x28, 0x78, 0x2e, 0xda);
 
-struct zephyr_nmgr_pkt *alloc_pkt(void);
 static void smp_bt_recv_cb(struct bt_conn *conn, const u8_t *buf, size_t len);
 
 static ssize_t smp_bt_chr_write(struct bt_conn *conn,
@@ -76,21 +75,22 @@ static int smp_bt_tx_rsp(struct bt_conn *conn, const void *data, u16_t len)
 }
 
 static struct bt_conn *
-smp_bt_conn_from_pkt(const struct zephyr_nmgr_pkt *pkt)
+smp_bt_conn_from_pkt(const struct net_buf *nb)
 {
     bt_addr_le_t addr;
 
-    memcpy(&addr, pkt->extra, sizeof addr);
+    /* Cast away const. */
+    memcpy(&addr, net_buf_user_data((void *)nb), sizeof addr);
     return bt_conn_lookup_addr_le(&addr);
 }
 
 static uint16_t
-smp_bt_get_mtu(const struct zephyr_nmgr_pkt *pkt)
+smp_bt_get_mtu(const struct net_buf *nb)
 {
     struct bt_conn *conn;
     uint16_t mtu;
 
-    conn = smp_bt_conn_from_pkt(pkt);
+    conn = smp_bt_conn_from_pkt(nb);
     if (conn == NULL) {
         return 0;
     }
@@ -103,20 +103,20 @@ smp_bt_get_mtu(const struct zephyr_nmgr_pkt *pkt)
 }
 
 static int
-smp_bt_tx_pkt(struct zephyr_smp_transport *zst, struct zephyr_nmgr_pkt *pkt)
+smp_bt_tx_pkt(struct zephyr_smp_transport *zst, struct net_buf *nb)
 {
     struct bt_conn *conn;
     int rc;
 
-    conn = smp_bt_conn_from_pkt(pkt);
+    conn = smp_bt_conn_from_pkt(nb);
     if (conn == NULL) {
         rc = -1;
     } else {
-        rc = smp_bt_tx_rsp(conn, pkt->data, pkt->len);
+        rc = smp_bt_tx_rsp(conn, nb->data, nb->len);
         bt_conn_unref(conn);
     }
 
-    k_free(pkt);
+    mcumgr_buf_free(nb);
 
     return rc;
 }
@@ -124,17 +124,16 @@ smp_bt_tx_pkt(struct zephyr_smp_transport *zst, struct zephyr_nmgr_pkt *pkt)
 static void
 smp_bt_recv_cb(struct bt_conn *conn, const u8_t *buf, size_t len)
 {
-    struct zephyr_nmgr_pkt *pkt;
     const bt_addr_le_t *addr;
+    struct net_buf *nb;
 
-    pkt = alloc_pkt();
-    memcpy(pkt->data, buf, len);
-    pkt->len = len;
+    nb = mcumgr_buf_alloc();
+    net_buf_add_mem(nb, buf, len);
 
     addr = bt_conn_get_dst(conn);
-    memcpy(pkt->extra, addr, sizeof *addr);
+    memcpy(net_buf_user_data(nb), addr, sizeof *addr);
 
-    zephyr_smp_rx_req(&smp_bt_transport, pkt);
+    zephyr_smp_rx_req(&smp_bt_transport, nb);
 }
 
 static int

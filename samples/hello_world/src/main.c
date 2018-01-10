@@ -14,10 +14,8 @@
 #include "os_mgmt/os_mgmt.h"
 #include "img_mgmt/img_mgmt.h"
 #include "mgmt/smp_bt.h"
-#include "mgmt/znp.h"
+#include "mgmt/buf.h"
  
-static int num_alloced;
-
 #define DEVICE_NAME         CONFIG_BT_DEVICE_NAME
 #define DEVICE_NAME_LEN     (sizeof(DEVICE_NAME) - 1)
 
@@ -29,19 +27,6 @@ static const struct bt_data ad[] = {
 static const struct bt_data sd[] = {
     BT_DATA(BT_DATA_NAME_COMPLETE, DEVICE_NAME, DEVICE_NAME_LEN),
 };
-
-struct zephyr_nmgr_pkt *
-alloc_pkt(void)
-{
-    struct zephyr_nmgr_pkt *pkt;
-
-    pkt = k_malloc(sizeof *pkt);
-    assert(pkt != NULL);
-    pkt->len = 0;
-
-    num_alloced++;
-    return pkt;
-}
 
 static void advertise(void)
 {

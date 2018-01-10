@@ -1,42 +1,40 @@
 #include <string.h>
 #include <zephyr.h>
 #include <init.h>
+#include "net/buf.h"
 #include "console/uart_mcumgr.h"
 #include "mgmt/mgmt.h"
-#include "mgmt/znp.h"
+#include "mgmt/buf.h"
 #include "zephyr_smp/zephyr_smp.h"
 
 struct device;
 
 static struct zephyr_smp_transport smp_uart_transport;
 
-struct zephyr_nmgr_pkt *alloc_pkt(void);
-
 static void
 smp_uart_rx_pkt(const uint8_t *buf, size_t len)
 {
-    struct zephyr_nmgr_pkt *pkt;
+    struct net_buf *nb;
 
-    pkt = alloc_pkt();
-    memcpy(pkt->data, buf, len);
-    pkt->len = len;
+    nb = mcumgr_buf_alloc();
+    net_buf_add_mem(nb, buf, len);
 
-    zephyr_smp_rx_req(&smp_uart_transport, pkt);
+    zephyr_smp_rx_req(&smp_uart_transport, nb);
 }
 
 static uint16_t
-smp_uart_get_mtu(const struct zephyr_nmgr_pkt *pkt)
+smp_uart_get_mtu(const struct net_buf *nb)
 {
     return MGMT_MAX_MTU;
 }
 
 static int
-smp_uart_tx_pkt(struct zephyr_smp_transport *zst, struct zephyr_nmgr_pkt *pkt)
+smp_uart_tx_pkt(struct zephyr_smp_transport *zst, struct net_buf *nb)
 {
     int rc;
 
-    rc = uart_mcumgr_send(pkt->data, pkt->len);
-    k_free(pkt);
+    rc = uart_mcumgr_send(nb->data, nb->len);
+    mcumgr_buf_free(nb);
 
     return rc;
 }

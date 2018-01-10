@@ -1,10 +1,11 @@
 #include <string.h>
 #include <zephyr.h>
 #include <init.h>
+#include "net/buf.h"
 #include "shell/shell.h"
 #include "mgmt/mgmt.h"
 #include "mgmt/serial.h"
-#include "mgmt/znp.h"
+#include "mgmt/buf.h"
 #include "zephyr_smp/zephyr_smp.h"
 
 struct device;
@@ -17,12 +18,10 @@ static struct mcumgr_serial_rx_ctxt smp_shell_rx_ctxt = {
     .buf_size = MCUMGR_SERIAL_BUF_SZ,
 };
 
-struct zephyr_nmgr_pkt *alloc_pkt(void);
-
 static int
 smp_shell_rx_line(const char *line, void *arg)
 {
-    struct zephyr_nmgr_pkt *pkt;
+    struct net_buf *nb;
     uint8_t *raw;
     bool complete;
     int raw_len;
@@ -32,11 +31,10 @@ smp_shell_rx_line(const char *line, void *arg)
         complete = mcumgr_serial_rx_byte(&smp_shell_rx_ctxt, line[i],
                                          &raw, &raw_len);
         if (complete) {
-            pkt = alloc_pkt();
-            memcpy(pkt->data, raw, raw_len);
-            pkt->len = raw_len;
+            nb = mcumgr_buf_alloc();
+            net_buf_add_mem(nb, raw, raw_len);
 
-            zephyr_smp_rx_req(&smp_shell_transport, pkt);
+            zephyr_smp_rx_req(&smp_shell_transport, nb);
         }
     }
 
@@ -44,7 +42,7 @@ smp_shell_rx_line(const char *line, void *arg)
 }
 
 static uint16_t
-smp_shell_get_mtu(const struct zephyr_nmgr_pkt *pkt)
+smp_shell_get_mtu(const struct net_buf *nb)
 {
     return MGMT_MAX_MTU;
 }
@@ -52,17 +50,18 @@ smp_shell_get_mtu(const struct zephyr_nmgr_pkt *pkt)
 static int
 smp_shell_tx_raw(const void *data, int len, void *arg)
 {
-    k_str_out(data, len);
+    /* Cast away const. */
+    k_str_out((void *)data, len);
     return 0;
 }
 
 static int
-smp_shell_tx_pkt(struct zephyr_smp_transport *zst, struct zephyr_nmgr_pkt *pkt)
+smp_shell_tx_pkt(struct zephyr_smp_transport *zst, struct net_buf *nb)
 {
     int rc;
 
-    rc = mcumgr_serial_tx(pkt->data, pkt->len, smp_shell_tx_raw, NULL);
-    k_free(pkt);
+    rc = mcumgr_serial_tx(nb->data, nb->len, smp_shell_tx_raw, NULL);
+    mcumgr_buf_free(nb);
 
     return rc;
 }
