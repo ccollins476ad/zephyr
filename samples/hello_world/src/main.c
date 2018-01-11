@@ -11,6 +11,7 @@
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/conn.h>
 #include <bluetooth/gatt.h>
+#include "fs_mgmt/fs_mgmt.h"
 #include "os_mgmt/os_mgmt.h"
 #include "img_mgmt/img_mgmt.h"
 #include "mgmt/smp_bt.h"
@@ -84,6 +85,9 @@ void main(void)
     assert(rc == 0);
 
     rc = img_mgmt_group_register();
+    assert(rc == 0);
+
+    rc = fs_mgmt_group_register();
     assert(rc == 0);
 
     rc = bt_enable(bt_ready);

@@ -118,7 +118,7 @@ cbor_nb_reader_cmp(struct cbor_decoder_reader *d, char *buf, int offset,
 
 static uintptr_t
 cbor_nb_reader_cpy(struct cbor_decoder_reader *d, char *dst, int offset,
-                    size_t len)
+                   size_t len)
 {
     struct cbor_nb_reader *cnr;
     int off;
