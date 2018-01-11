@@ -56,3 +56,5 @@ target_include_directories(app PRIVATE
     src/mcuboot/boot/bootutil/src
     src/mcuboot/boot/zephyr/include
 )
+
+zephyr_link_libraries(MCUMGR NFFS)
