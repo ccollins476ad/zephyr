@@ -8,6 +8,9 @@
 #include "mgmt/buf.h"
 #include "zephyr_smp/zephyr_smp.h"
 
+/* XXX: Make configurable. */
+#define SMP_SHELL_MTU   1024
+
 struct device;
 
 static struct zephyr_smp_transport smp_shell_transport;
@@ -44,7 +47,7 @@ smp_shell_rx_line(const char *line, void *arg)
 static uint16_t
 smp_shell_get_mtu(const struct net_buf *nb)
 {
-    return MGMT_MAX_MTU;
+    return SMP_SHELL_MTU;
 }
 
 static int
@@ -71,7 +74,8 @@ smp_shell_init(struct device *dev)
 {
     ARG_UNUSED(dev);
 
-    zephyr_smp_transport_init(&smp_shell_transport, smp_shell_tx_pkt, smp_shell_get_mtu);
+    zephyr_smp_transport_init(&smp_shell_transport, smp_shell_tx_pkt,
+                              smp_shell_get_mtu);
     shell_register_nlip_handler(smp_shell_rx_line, NULL);
 
     return 0;

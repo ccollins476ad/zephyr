@@ -9,12 +9,7 @@ NET_BUF_POOL_DEFINE(pkt_pool, 8, 1024, 7, NULL);
 struct net_buf *
 mcumgr_buf_alloc(void)
 {
-    struct net_buf *buf;
-
-    buf = net_buf_alloc(&pkt_pool, K_NO_WAIT);
-    assert(buf != NULL);
-
-    return buf;
+    return net_buf_alloc(&pkt_pool, K_NO_WAIT);
 }
 
 void

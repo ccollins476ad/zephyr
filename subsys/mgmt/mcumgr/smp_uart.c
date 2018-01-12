@@ -7,6 +7,9 @@
 #include "mgmt/buf.h"
 #include "zephyr_smp/zephyr_smp.h"
 
+/* XXX: Make configurable. */
+#define SMP_UART_MTU            1024
+
 struct device;
 
 static struct zephyr_smp_transport smp_uart_transport;
@@ -25,7 +28,7 @@ smp_uart_rx_pkt(const uint8_t *buf, size_t len)
 static uint16_t
 smp_uart_get_mtu(const struct net_buf *nb)
 {
-    return MGMT_MAX_MTU;
+    return SMP_UART_MTU;
 }
 
 static int
@@ -44,7 +47,8 @@ smp_uart_init(struct device *dev)
 {
     ARG_UNUSED(dev);
 
-    zephyr_smp_transport_init(&smp_uart_transport, smp_uart_tx_pkt, smp_uart_get_mtu);
+    zephyr_smp_transport_init(&smp_uart_transport, smp_uart_tx_pkt,
+                              smp_uart_get_mtu);
     uart_mcumgr_register(smp_uart_rx_pkt);
 
     return 0;
