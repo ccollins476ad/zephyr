@@ -81,24 +81,18 @@ void main(void)
 {
     int rc;
 
-    rc = os_mgmt_group_register();
-    assert(rc == 0);
-
-    rc = img_mgmt_group_register();
-    assert(rc == 0);
-
-    rc = fs_mgmt_group_register();
-    assert(rc == 0);
+    os_mgmt_register_group();
+    img_mgmt_register_group();
+    fs_mgmt_register_group();
 
     rc = bt_enable(bt_ready);
     if (rc != 0) {
         printk("Bluetooth init failed (err %d)\n", rc);
         return;
     }
+    bt_conn_cb_register(&conn_callbacks);
 
     smp_bt_register();
-
-    bt_conn_cb_register(&conn_callbacks);
 
     while (1) {
         k_sleep(INT32_MAX);
