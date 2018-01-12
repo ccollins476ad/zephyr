@@ -1,14 +1,34 @@
-/** @file
- *  @brief Pipe UART driver header file.
- *
- *  A mcumgr UART driver that allows applications to handle all aspects of
- *  received protocol data.
- */
-
 /*
- * Copyright (c) 2015 Intel Corporation
+ * Copyright Runtime.io 2018. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
+ */
+
+/** @file
+ * @brief A driver for sending and receiving mcumgr packets over UART.
+ *
+ * Mcumgr packets sent over UART are fragmented into frames of 128 bytes or
+ * fewer.
+ *
+ * The initial frame in a packet has the following format:
+ *     offset 0:    0x06 0x09
+ *     === Begin base64 encoding ===
+ *     offset 2:    <16-bit packet-length>
+ *     offset ?:    <mcumgr-data>
+ *     offset ?:    <crc16 of base64-encoded content>
+ *     === End base64 encoding ===
+ *     offset ?:    0x0a (newline)
+ *
+ * All subsequent frames have the following format:
+ *     offset 0:    0x04 0x14
+ *     === Begin base64 encoding ===
+ *     offset 2:    <mcumgr-data>
+ *     offset ?:    <crc16 of base64-encoded content>
+ *     === End base64 encoding ===
+ *     offset ?:    0x0a (newline)
+ *
+ * The packet is fully received when <packet-length> bytes of <mcumgr-data>
+ * have been received.
  */
 
 #include <stdlib.h>
@@ -18,38 +38,33 @@
 extern "C" {
 #endif
 
-/** @brief Received data callback.
+/** @typedef uart_mcumgr_recv_fn
+ * @brief Function that gets called when an mcumgr packet is received.
  *
- *  This function is called when new data is received on UART. The off parameter
- *  can be used to alter offset at which received data is stored. Typically,
- *  when the complete data is received and a new buffer is provided off should
- *  be set to 0.
- *
- *  @param buf Buffer with received data.
- *  @param off Data offset on next received and accumulated data length.
- *
- *  @return Buffer to be used on next receive.
+ *  @param buf                  A buffer containing the incoming mcumgr packet.
+ *  @param len                  The length of the buffer, in bytes.
  */
-typedef void (*uart_mcumgr_recv_cb)(const u8_t *buf, size_t len);
+typedef void uart_mcumgr_recv_fn(const u8_t *buf, size_t len);
 
-/** @brief Send data over UART.
+/**
+ * @brief Sends an mcumgr packet over UART.
  *
- *  This function is used to send data over UART.
+ * @param data                 Buffer containing the mcumgr packet to send.
+ * @param len                  The length of the buffer, in bytes.
  *
- *  @param data Buffer with data to be send.
- *  @param len Size of data.
- *
- *  @return 0 on success or negative error
+ * @return                     0 on success or negative error.
  */
 int uart_mcumgr_send(const u8_t *data, int len);
 
-/** @brief Register UART application.
+/**
+ * @brief Registers an mcumgr UART receive handler.
  *
- *  This function is used to register new UART application.
+ * Configures the mcumgr UART driver to call the specified function when an
+ * mcumgr request packet is received.
  *
- *  @param cb Callback to be called on data reception.
+ * @param cb The callback to execute when an mcumgr request packet is received.
  */
-void uart_mcumgr_register(uart_mcumgr_recv_cb cb);
+void uart_mcumgr_register(uart_mcumgr_recv_fn *cb);
 
 #ifdef __cplusplus
 }

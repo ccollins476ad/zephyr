@@ -5,14 +5,14 @@
 
 #define MCUMGR_SERIAL_BUF_SZ    1024
 
-#define SHELL_NLIP_PKT          0x0609
-#define SHELL_NLIP_DATA         0x0414
-#define SHELL_NLIP_MAX_FRAME    128
+#define MCUMGR_SERIAL_HDR_PKT       0x0609
+#define MCUMGR_SERIAL_HDR_FRAG      0x0414
+#define MCUMGR_SERIAL_MAX_FRAME     128
 
-#define SHELL_NLIP_PKT_1        (SHELL_NLIP_PKT >> 8)
-#define SHELL_NLIP_PKT_2        (SHELL_NLIP_PKT & 0xff)
-#define SHELL_NLIP_DATA_1       (SHELL_NLIP_DATA >> 8)
-#define SHELL_NLIP_DATA_2       (SHELL_NLIP_DATA & 0xff)
+#define MCUMGR_SERIAL_HDR_PKT_1     (MCUMGR_SERIAL_HDR_PKT >> 8)
+#define MCUMGR_SERIAL_HDR_PKT_2     (MCUMGR_SERIAL_HDR_PKT & 0xff)
+#define MCUMGR_SERIAL_HDR_FRAG_1    (MCUMGR_SERIAL_HDR_FRAG >> 8)
+#define MCUMGR_SERIAL_HDR_FRAG_2    (MCUMGR_SERIAL_HDR_FRAG & 0xff)
 
 struct mcumgr_serial_rx_ctxt {
     u8_t *buf;

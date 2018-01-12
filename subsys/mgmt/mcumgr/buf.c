@@ -21,7 +21,7 @@ mcumgr_buf_free(struct net_buf *nb)
 static int
 cbor_nb_reader_off(const struct cbor_nb_reader *cnr, int offset)
 {
-    return offset + cnr->init_off;
+    return offset;
 }
 
 static uint8_t
@@ -142,8 +142,7 @@ cbor_nb_get_string_chunk(struct cbor_decoder_reader *d, int offset, size_t *len)
 
 void
 cbor_nb_reader_init(struct cbor_nb_reader *cnr,
-                     struct net_buf *nb,
-                     int initial_offset)
+                     struct net_buf *nb)
 {
     cnr->r.get8 = &cbor_nb_reader_get8;
     cnr->r.get16 = &cbor_nb_reader_get16;
@@ -154,8 +153,7 @@ cbor_nb_reader_init(struct cbor_nb_reader *cnr,
     cnr->r.get_string_chunk = &cbor_nb_get_string_chunk;
 
     cnr->nb = nb;
-    cnr->init_off = initial_offset;
-    cnr->r.message_size = nb->len - initial_offset;
+    cnr->r.message_size = nb->len;
 }
 
 static int

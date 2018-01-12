@@ -1,12 +1,5 @@
-/** @file
- * @brief Pipe UART driver
- *
- * A mcumgr UART driver allowing application to handle all aspects of received
- * protocol data.
- */
-
 /*
- * Copyright (c) 2015 Intel Corporation
+ * Copyright Runtime.io 2018. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -21,26 +14,35 @@
 #include "mgmt/serial.h"
 #include <console/uart_mcumgr.h>
 
+/* XXX: Make this configurable. */
+#define UART_MCUMGR_SERIAL_BUF_SZ    1024
+
 static struct device *uart_mcumgr_dev;
 
-static uart_mcumgr_recv_cb app_cb;
+static uart_mcumgr_recv_fn *uart_mgumgr_recv_cb;
 
-static u8_t uart_mcumgr_rx_buf[MCUMGR_SERIAL_BUF_SZ];
+static u8_t uart_mcumgr_rx_buf[UART_MCUMGR_SERIAL_BUF_SZ];
 static struct mcumgr_serial_rx_ctxt uart_mcumgr_rx_ctxt = {
     .buf = uart_mcumgr_rx_buf,
-    .buf_size = MCUMGR_SERIAL_BUF_SZ,
+    .buf_size = UART_MCUMGR_SERIAL_BUF_SZ,
 };
 
+/**
+ * Reads a chunk of received data from the UART.
+ */
 static int
-uart_mcumgr_read_chunk(void *buf, int cap)
+uart_mcumgr_read_chunk(void *buf, int capacity)
 {
     if (!uart_irq_rx_ready(uart_mcumgr_dev)) {
         return 0;
     }
 
-    return uart_fifo_read(uart_mcumgr_dev, buf, cap);
+    return uart_fifo_read(uart_mcumgr_dev, buf, capacity);
 }
 
+/**
+ * ISR that is called when UART bytes are received.
+ */
 static void
 uart_mcumgr_isr(struct device *unused)
 {
@@ -53,8 +55,8 @@ uart_mcumgr_isr(struct device *unused)
 
 	ARG_UNUSED(unused);
 
-	while (uart_irq_update(uart_mcumgr_dev)
-	       && uart_irq_is_pending(uart_mcumgr_dev)) {
+	while (uart_irq_update(uart_mcumgr_dev) &&
+           uart_irq_is_pending(uart_mcumgr_dev)) {
 
         chunk_len = uart_mcumgr_read_chunk(buf, sizeof buf);
         if (chunk_len == 0) {
@@ -65,12 +67,15 @@ uart_mcumgr_isr(struct device *unused)
             complete = mcumgr_serial_rx_byte(&uart_mcumgr_rx_ctxt, buf[i],
                                              &pkt, &pkt_len);
             if (complete) {
-                app_cb(pkt, pkt_len);
+                uart_mgumgr_recv_cb(pkt, pkt_len);
             }
         }
 	}
 }
 
+/**
+ * Sends raw data over the UART.
+ */
 static int
 uart_mcumgr_send_raw(const void *data, int len, void *arg)
 {
@@ -106,9 +111,9 @@ static void uart_mcumgr_setup(struct device *uart)
 	uart_irq_rx_enable(uart);
 }
 
-void uart_mcumgr_register(uart_mcumgr_recv_cb cb)
+void uart_mcumgr_register(uart_mcumgr_recv_fn *cb)
 {
-	app_cb = cb;
+	uart_mgumgr_recv_cb = cb;
 
 	uart_mcumgr_dev = device_get_binding(CONFIG_UART_MCUMGR_ON_DEV_NAME);
 

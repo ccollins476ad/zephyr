@@ -33,7 +33,7 @@ mcumgr_serial_parse_op(const u8_t *buf, int len)
     memcpy(&op, buf, sizeof op);
     op = sys_be16_to_cpu(op);
 
-    if (op != SHELL_NLIP_PKT && op != SHELL_NLIP_DATA) {
+    if (op != MCUMGR_SERIAL_HDR_PKT && op != MCUMGR_SERIAL_HDR_FRAG) {
         return -1;
     }
 
@@ -72,10 +72,6 @@ mcumgr_serial_decode_frag(struct mcumgr_serial_rx_ctxt *rx_ctxt,
     return 0;
 }
 
-#define FRAGLOG_MAX_SZ 128
-struct mcumgr_serial_rx_ctxt fraglog[FRAGLOG_MAX_SZ];
-int fraglog_sz;
-
 /**
  * @return true if a complete packet was received.
  */
@@ -87,17 +83,13 @@ mcumgr_serial_process_frag(struct mcumgr_serial_rx_ctxt *rx_ctxt,
     uint16_t op;
     int rc;
 
-    if (fraglog_sz < FRAGLOG_MAX_SZ) {
-        fraglog[fraglog_sz++] = *rx_ctxt;
-    }
-
     op = mcumgr_serial_parse_op(frag, frag_len);
     switch (op) {
-    case SHELL_NLIP_PKT:
+    case MCUMGR_SERIAL_HDR_PKT:
         rx_ctxt->raw_off = 0;
         break;
 
-    case SHELL_NLIP_DATA:
+    case MCUMGR_SERIAL_HDR_FRAG:
         if (rx_ctxt->raw_off == 0) {
             return -1;
         }
@@ -112,7 +104,7 @@ mcumgr_serial_process_frag(struct mcumgr_serial_rx_ctxt *rx_ctxt,
         return false;
     }
 
-    if (op == SHELL_NLIP_PKT) {
+    if (op == MCUMGR_SERIAL_HDR_PKT) {
         rc = mcumgr_serial_parse_len(rx_ctxt);
         if (rc == -1) {
             return false;
@@ -202,7 +194,7 @@ mcumgr_serial_tx(const u8_t *data, int len, mcumgr_serial_tx_fn *cb,
 
     crc = mcumgr_serial_calc_crc(data, len);
 
-    u16 = sys_cpu_to_be16(SHELL_NLIP_PKT);
+    u16 = sys_cpu_to_be16(MCUMGR_SERIAL_HDR_PKT);
     rc = cb(&u16, sizeof u16, arg);
     if (rc != 0) {
         return rc;

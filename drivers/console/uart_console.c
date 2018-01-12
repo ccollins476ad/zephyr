@@ -376,22 +376,22 @@ read_nlip_byte(uint8_t byte)
     }
 
     if (pkt_1) {
-        if (byte == SHELL_NLIP_PKT_2) {
+        if (byte == MCUMGR_SERIAL_HDR_PKT_2) {
             atomic_set_bit(&esc_state, ESC_NLIP_PKT_2);
             return 2;
         }
     } else if (data_1) {
-        if (byte == SHELL_NLIP_DATA_2) {
+        if (byte == MCUMGR_SERIAL_HDR_FRAG_2) {
             atomic_set_bit(&esc_state, ESC_NLIP_DATA_2);
             return 2;
         }
     } else {
         clear_nlip();
-        if (byte == SHELL_NLIP_PKT_1) {
+        if (byte == MCUMGR_SERIAL_HDR_PKT_1) {
             atomic_set_bit(&esc_state, ESC_NLIP_PKT);
             uart_console_set_echo(false);
             return 1;
-        } else if (byte == SHELL_NLIP_DATA_1) {
+        } else if (byte == MCUMGR_SERIAL_HDR_FRAG_1) {
             atomic_set_bit(&esc_state, ESC_NLIP_DATA);
             uart_console_set_echo(false);
             return 1;

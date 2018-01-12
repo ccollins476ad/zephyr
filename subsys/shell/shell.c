@@ -316,11 +316,11 @@ void shell_register_nlip_handler(shell_nlip_function_t handler, void *arg)
 
 static bool shell_line_is_nlip(const char *line)
 {
-    if (line[0] == SHELL_NLIP_PKT_1 && line[1] == SHELL_NLIP_PKT_2) {
+    if (line[0] == MCUMGR_SERIAL_HDR_PKT_1 && line[1] == MCUMGR_SERIAL_HDR_PKT_2) {
         return true;
     }
 
-    if (line[0] == SHELL_NLIP_DATA_1 && line[1] == SHELL_NLIP_DATA_2) {
+    if (line[0] == MCUMGR_SERIAL_HDR_FRAG_1 && line[1] == MCUMGR_SERIAL_HDR_FRAG_2) {
         return true;
     }
 
