@@ -314,23 +314,6 @@ void shell_register_mcumgr_handler(shell_mcumgr_function_t handler, void *arg)
     mcumgr_arg = arg;
 }
 
-static bool shell_line_is_mcumgr(const char *line)
-{
-    if (line[0] == MCUMGR_SERIAL_HDR_PKT_1 &&
-        line[1] == MCUMGR_SERIAL_HDR_PKT_2) {
-
-        return true;
-    }
-
-    if (line[0] == MCUMGR_SERIAL_HDR_FRAG_1 &&
-        line[1] == MCUMGR_SERIAL_HDR_FRAG_2) {
-
-        return true;
-    }
-
-    return false;
-}
-
 int shell_exec(char *line)
 {
 	char *argv[ARGC_MAX + 1], **argv_start = argv;
@@ -409,7 +392,7 @@ static void shell(void *p1, void *p2, void *p3)
          * handler.  Don't print the shell prompt this time, as that will
          * interfere with the mcumgr response.
          */
-        if (mcumgr_cmd_handler != NULL && shell_line_is_mcumgr(cmd->line)) {
+        if (mcumgr_cmd_handler != NULL && cmd->is_mcumgr) {
             mcumgr_cmd_handler(cmd->line, mcumgr_arg);
             print_prompt = false;
         } else {

@@ -349,6 +349,8 @@ ansi_cmd:
 	atomic_clear_bit(&esc_state, ESC_ANSI);
 }
 
+#ifdef CONFIG_UART_CONSOLE_MCUMGR
+
 static void
 clear_mcumgr(void)
 {
@@ -434,6 +436,7 @@ handle_mcumgr(struct console_input *cmd, uint8_t byte)
         /* Not an mcumgr command; let the normal console handling process the
          * byte.
          */
+        cmd->is_mcumgr = 0;
         return false;
     }
 
@@ -445,6 +448,7 @@ handle_mcumgr(struct console_input *cmd, uint8_t byte)
     }
     if (mcumgr_state == CONSOLE_MCUMGR_STATE_PAYLOAD && byte == '\n') {
         cmd->line[cur + end] = '\0';
+        cmd->is_mcumgr = 1;
         k_fifo_put(lines_queue, cmd);
 
         clear_mcumgr();
@@ -455,6 +459,8 @@ handle_mcumgr(struct console_input *cmd, uint8_t byte)
 
     return true;
 }
+
+#endif /* CONFIG_UART_CONSOLE_MCUMGR */
 
 void uart_console_isr(struct device *unused)
 {
@@ -494,12 +500,14 @@ void uart_console_isr(struct device *unused)
 			}
 		}
 
+#ifdef CONFIG_UART_CONSOLE_MCUMGR
         /* Divert this byte from normal console handling if it is part of an
          * mcumgr frame.
          */
         if (handle_mcumgr(cmd, byte)) {
             continue;
         }
+#endif /* CONFIG_UART_CONSOLE_MCUMGR */
 
 		/* Handle ANSI escape mode */
 		if (atomic_test_bit(&esc_state, ESC_ANSI)) {
