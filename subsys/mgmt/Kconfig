@@ -11,7 +11,9 @@ menu "Management"
 config MCUMGR_SMP_BT
 	bool
 	prompt "Bluetooth mcumgr SMP transport"
-	#select UART_MCUMGR
+	select MCUMGR
+	select BT
+	select BT_PERIPHERAL
 	default n
 	help
 	  Enables handling of SMP commands received over Bluetooth.
@@ -19,18 +21,39 @@ config MCUMGR_SMP_BT
 config MCUMGR_SMP_SHELL
 	bool
 	prompt "Shell mcumgr SMP transport"
+	select MCUMGR
 	select UART_CONSOLE_MCUMGR
 	select CONSOLE_SHELL
 	default n
 	help
 	  Enables handling of SMP commands received over shell.
 
+if MCUMGR_SMP_SHELL
+config MCUMGR_SMP_SHELL_MTU
+	int
+	prompt "Shell SMP MTU"
+	default 1024
+	help
+	  Maximum size of SMP frames sent and received over shell.
+endif
+
+
 config MCUMGR_SMP_UART
 	bool
 	prompt "UART mcumgr SMP transport"
+	select MCUMGR
 	select UART_MCUMGR
 	default n
 	help
 	  Enables handling of SMP commands received over UART.
+
+if MCUMGR_SMP_UART
+config MCUMGR_SMP_UART_MTU
+	int
+	prompt "UART SMP MTU"
+	default 1024
+	help
+	  Maximum size of SMP frames sent and received over UART.
+endif
 
 endmenu

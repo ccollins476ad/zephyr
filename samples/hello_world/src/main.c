@@ -11,9 +11,9 @@
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/conn.h>
 #include <bluetooth/gatt.h>
-#include "fs_mgmt/fs_mgmt.h"
+//#include "fs_mgmt/fs_mgmt.h"
 #include "os_mgmt/os_mgmt.h"
-#include "img_mgmt/img_mgmt.h"
+//#include "img_mgmt/img_mgmt.h"
 #include "mgmt/smp_bt.h"
 #include "zephyr_mgmt/buf.h"
  
@@ -82,8 +82,8 @@ void main(void)
     int rc;
 
     os_mgmt_register_group();
-    img_mgmt_register_group();
-    fs_mgmt_register_group();
+    //img_mgmt_register_group();
+    //fs_mgmt_register_group();
 
     rc = bt_enable(bt_ready);
     if (rc != 0) {
@@ -92,7 +92,7 @@ void main(void)
     }
     bt_conn_cb_register(&conn_callbacks);
 
-    //smp_bt_register();
+    smp_bt_register();
 
     while (1) {
         k_sleep(INT32_MAX);

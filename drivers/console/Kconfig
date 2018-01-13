@@ -190,6 +190,16 @@ config	UART_PIPE
 	  data (as contrary to console UART driver) and all aspects of received
 	  protocol data are handled by application provided callback.
 
+if !HAS_DTS
+config UART_PIPE_ON_DEV_NAME
+	string "Device Name of UART Device for pipe UART"
+	default "UART_0"
+	depends on UART_PIPE
+	help
+	  This option specifies the name of UART device to be used
+	  for pipe UART.
+endif
+
 config UART_MCUMGR
 	bool
 	prompt "Enable mcumgr UART driver"
@@ -202,15 +212,8 @@ config UART_MCUMGR
 	  aspects of received protocol data are handled by application provided
 	  callback.
 
+if UART_MCUMGR
 if !HAS_DTS
-config UART_PIPE_ON_DEV_NAME
-	string "Device Name of UART Device for pipe UART"
-	default "UART_0"
-	depends on UART_PIPE
-	help
-	  This option specifies the name of UART device to be used
-	  for pipe UART.
-
 config UART_MCUMGR_ON_DEV_NAME
 	string "Device Name of UART Device for mcumgr UART"
 	default "UART_0"
@@ -218,7 +221,13 @@ config UART_MCUMGR_ON_DEV_NAME
 	help
 	  This option specifies the name of UART device to be used
 	  for mcumgr UART.
-endif
+endif # !HAS_DTS
+
+config UART_MCUMGR_RX_BUF_SIZE
+	int
+	prompt "Size of receive buffer for mcumgr packets received over UART"
+	default 1024
+endif # UART_MCUMGR
 
 config XTENSA_SIM_CONSOLE
 	bool

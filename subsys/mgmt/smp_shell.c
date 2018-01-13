@@ -18,17 +18,14 @@
 #include "zephyr_mgmt/buf.h"
 #include "zephyr_smp/zephyr_smp.h"
 
-/* XXX: Make configurable. */
-#define SMP_SHELL_MTU   1024
-
 struct device;
 
 static struct zephyr_smp_transport smp_shell_transport;
 
-static u8_t smp_shell_rx_buf[SMP_SHELL_MTU];
+static u8_t smp_shell_rx_buf[CONFIG_MCUMGR_SMP_SHELL_MTU];
 static struct mcumgr_serial_rx_ctxt smp_shell_rx_ctxt = {
     .buf = smp_shell_rx_buf,
-    .buf_size = SMP_SHELL_MTU,
+    .buf_size = CONFIG_MCUMGR_SMP_SHELL_MTU,
 };
 
 /**
@@ -60,7 +57,7 @@ smp_shell_rx_line(const char *line, void *arg)
 static u16_t
 smp_shell_get_mtu(const struct net_buf *nb)
 {
-    return SMP_SHELL_MTU;
+    return CONFIG_MCUMGR_SMP_SHELL_MTU;
 }
 
 static int

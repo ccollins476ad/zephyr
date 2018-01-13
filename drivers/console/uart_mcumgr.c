@@ -12,22 +12,18 @@
 #include <assert.h>
 #include <string.h>
 #include <kernel.h>
-#include <board.h> // XXX
 #include <uart.h>
 #include <mgmt/serial.h>
 #include <console/uart_mcumgr.h>
-
-/* XXX: Make this configurable. */
-#define UART_MCUMGR_SERIAL_BUF_SZ    1024
 
 static struct device *uart_mcumgr_dev;
 
 static uart_mcumgr_recv_fn *uart_mgumgr_recv_cb;
 
-static u8_t uart_mcumgr_rx_buf[UART_MCUMGR_SERIAL_BUF_SZ];
+static u8_t uart_mcumgr_rx_buf[CONFIG_UART_MCUMGR_RX_BUF_SIZE];
 static struct mcumgr_serial_rx_ctxt uart_mcumgr_rx_ctxt = {
     .buf = uart_mcumgr_rx_buf,
-    .buf_size = UART_MCUMGR_SERIAL_BUF_SZ,
+    .buf_size = CONFIG_UART_MCUMGR_RX_BUF_SIZE,
 };
 
 /**
