@@ -259,6 +259,8 @@ mcumgr_serial_tx_frame(const u8_t *data, bool first, int len,
 
         if (rem == 1) {
             raw[0] = data[src_off];
+            src_off++;
+
             raw[1] = (crc & 0xff00) >> 8;
             raw[2] = crc & 0x00ff;
             rc = mcumgr_serial_tx_small(raw, 3, cb, arg);
@@ -271,6 +273,8 @@ mcumgr_serial_tx_frame(const u8_t *data, bool first, int len,
         if (rem == 2) {
             raw[0] = data[src_off];
             raw[1] = data[src_off + 1];
+            src_off += 2;
+
             raw[2] = (crc & 0xff00) >> 8;
             rc = mcumgr_serial_tx_small(raw, 3, cb, arg);
             if (rc != 0) {
@@ -291,7 +295,6 @@ mcumgr_serial_tx_frame(const u8_t *data, bool first, int len,
         if (rc != 0) {
             return rc;
         }
-
         src_off += 3;
         dst_off += 4;
     }
@@ -309,8 +312,10 @@ int
 mcumgr_serial_tx(const u8_t *data, int len, mcumgr_serial_tx_fn *cb,
                  void *arg)
 {
+    u16_t crc;
     int data_bytes_txed;
     int src_off;
+    int rc;
 
     /* Calculate CRC of entire packet. */
     crc = mcumgr_serial_calc_crc(data, len);
@@ -318,8 +323,11 @@ mcumgr_serial_tx(const u8_t *data, int len, mcumgr_serial_tx_fn *cb,
     /* Transmit packet as a sequence of frames. */
     src_off = 0;
     while (src_off < len) {
-        rc = mcumgr_serial_tx_frame(data, src_off == 0, len - src_off, crc,
-                                    cb, arg, data_bytes_txed);
+        rc = mcumgr_serial_tx_frame(data + src_off,
+                                    src_off == 0,
+                                    len - src_off,
+                                    crc, cb, arg,
+                                    &data_bytes_txed);
         if (rc != 0) {
             return rc;
         }
