@@ -1,9 +1,11 @@
-/* IEEE 802.15.4 settings code */
-
 /*
- * Copyright (c) 2017 Intel Corporation.
+ * Copyright Runtime.io 2018. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
+ */
+
+/** @file
+ * @brief Bluetooth transport for the mcumgr SMP protocol.
  */
 
 #include <errno.h>
@@ -15,7 +17,7 @@
 #include <bluetooth/gatt.h>
 
 #include <mgmt/smp_bt.h>
-#include <mgmt/buf.h>
+#include <zephyr_mgmt/buf.h>
 
 #include <zephyr_smp/zephyr_smp.h>
 
@@ -23,24 +25,38 @@ struct device;
 
 static struct zephyr_smp_transport smp_bt_transport;
 
-/* {8D53DC1D-1DB7-4CD3-868B-8A527460AA84} */
+/* SMP service.
+ * {8D53DC1D-1DB7-4CD3-868B-8A527460AA84}
+ */
 static struct bt_uuid_128 smp_bt_svc_uuid = BT_UUID_INIT_128(
     0x84, 0xaa, 0x60, 0x74, 0x52, 0x8a, 0x8b, 0x86,
     0xd3, 0x4c, 0xb7, 0x1d, 0x1d, 0xdc, 0x53, 0x8d);
 
-/* {DA2E7828-FBCE-4E01-AE9E-261174997C48} */
+/* SMP characteristic; used for both requests and responses.
+ * {DA2E7828-FBCE-4E01-AE9E-261174997C48}
+ */
 static struct bt_uuid_128 smp_bt_chr_uuid = BT_UUID_INIT_128(
     0x48, 0x7c, 0x99, 0x74, 0x11, 0x26, 0x9e, 0xae,
     0x01, 0x4e, 0xce, 0xfb, 0x28, 0x78, 0x2e, 0xda);
 
-static void smp_bt_recv_cb(struct bt_conn *conn, const u8_t *buf, size_t len);
-
+/**
+ * Write handler for the SMP characteristic; processes an incoming SMP request.
+ */
 static ssize_t smp_bt_chr_write(struct bt_conn *conn,
-              const struct bt_gatt_attr *attr,
-			  const void *buf, u16_t len, u16_t offset,
-			  u8_t flags)
+                                const struct bt_gatt_attr *attr,
+                                const void *buf, u16_t len, u16_t offset,
+                                u8_t flags)
 {
-    smp_bt_recv_cb(conn, buf, len);
+    const bt_addr_le_t *addr;
+    struct net_buf *nb;
+
+    nb = mcumgr_buf_alloc();
+    net_buf_add_mem(nb, buf, len);
+
+    addr = bt_conn_get_dst(conn);
+    memcpy(net_buf_user_data(nb), addr, sizeof *addr);
+
+    zephyr_smp_rx_req(&smp_bt_transport, nb);
 
     return len;
 }
@@ -64,16 +80,18 @@ static struct bt_gatt_attr smp_bt_attrs[] = {
 
 static struct bt_gatt_service smp_bt_svc = BT_GATT_SERVICE(smp_bt_attrs);
 
-int smp_bt_register(void)
-{
-    return bt_gatt_service_register(&smp_bt_svc);
-}
-
+/**
+ * Transmits an SMP response over the specified Bluetooth connection.
+ */
 static int smp_bt_tx_rsp(struct bt_conn *conn, const void *data, u16_t len)
 {
     return bt_gatt_notify(conn, smp_bt_attrs + 2, data, len);
 }
 
+/**
+ * Extracts the peer address from a net_buf's user data and looks up the
+ * corresponding conection.
+ */
 static struct bt_conn *
 smp_bt_conn_from_pkt(const struct net_buf *nb)
 {
@@ -84,11 +102,15 @@ smp_bt_conn_from_pkt(const struct net_buf *nb)
     return bt_conn_lookup_addr_le(&addr);
 }
 
-static uint16_t
+/**
+ * Calculates the maximum fragment size to use when sending the specified
+ * response packet.
+ */
+static u16_t
 smp_bt_get_mtu(const struct net_buf *nb)
 {
     struct bt_conn *conn;
-    uint16_t mtu;
+    u16_t mtu;
 
     conn = smp_bt_conn_from_pkt(nb);
     if (conn == NULL) {
@@ -98,10 +120,13 @@ smp_bt_get_mtu(const struct net_buf *nb)
     mtu = bt_gatt_get_mtu(conn);
     bt_conn_unref(conn);
 
-    /* 3 is the number of bytes for ATT notification base */
+    /* Account for the three-byte notification header. */
     return mtu - 3;
 }
 
+/**
+ * Transmits the specified SMP response.
+ */
 static int
 smp_bt_tx_pkt(struct zephyr_smp_transport *zst, struct net_buf *nb)
 {
@@ -121,19 +146,9 @@ smp_bt_tx_pkt(struct zephyr_smp_transport *zst, struct net_buf *nb)
     return rc;
 }
 
-static void
-smp_bt_recv_cb(struct bt_conn *conn, const u8_t *buf, size_t len)
+int smp_bt_register(void)
 {
-    const bt_addr_le_t *addr;
-    struct net_buf *nb;
-
-    nb = mcumgr_buf_alloc();
-    net_buf_add_mem(nb, buf, len);
-
-    addr = bt_conn_get_dst(conn);
-    memcpy(net_buf_user_data(nb), addr, sizeof *addr);
-
-    zephyr_smp_rx_req(&smp_bt_transport, nb);
+    return bt_gatt_service_register(&smp_bt_svc);
 }
 
 static int
@@ -141,7 +156,8 @@ smp_bt_init(struct device *dev)
 {
     ARG_UNUSED(dev);
 
-    zephyr_smp_transport_init(&smp_bt_transport, smp_bt_tx_pkt, smp_bt_get_mtu);
+    zephyr_smp_transport_init(&smp_bt_transport, smp_bt_tx_pkt,
+                              smp_bt_get_mtu);
     return 0;
 }
 

@@ -15,7 +15,7 @@
 #include "os_mgmt/os_mgmt.h"
 #include "img_mgmt/img_mgmt.h"
 #include "mgmt/smp_bt.h"
-#include "mgmt/buf.h"
+#include "zephyr_mgmt/buf.h"
  
 #define DEVICE_NAME         CONFIG_BT_DEVICE_NAME
 #define DEVICE_NAME_LEN     (sizeof(DEVICE_NAME) - 1)

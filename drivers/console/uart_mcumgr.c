@@ -4,14 +4,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/**
+ * @file
+ * @brief A driver for sending and receiving mcumgr packets over UART.
+ */
+
 #include <assert.h>
 #include <string.h>
 #include <kernel.h>
-
-#include <board.h>
+#include <board.h> // XXX
 #include <uart.h>
-
-#include "mgmt/serial.h"
+#include <mgmt/serial.h>
 #include <console/uart_mcumgr.h>
 
 /* XXX: Make this configurable. */
@@ -46,8 +49,8 @@ uart_mcumgr_read_chunk(void *buf, int capacity)
 static void
 uart_mcumgr_isr(struct device *unused)
 {
-    uint8_t buf[32];
-    uint8_t *pkt;
+    u8_t buf[32];
+    u8_t *pkt;
     bool complete;
     int chunk_len;
     int pkt_len;
@@ -91,7 +94,7 @@ uart_mcumgr_send_raw(const void *data, int len, void *arg)
 
 int uart_mcumgr_send(const u8_t *data, int len)
 {
-    return mcumgr_serial_tx(data, len, uart_mcumgr_send_raw, NULL);
+    return mcumgr_serial_tx_pkt(data, len, uart_mcumgr_send_raw, NULL);
 }
 
 static void uart_mcumgr_setup(struct device *uart)

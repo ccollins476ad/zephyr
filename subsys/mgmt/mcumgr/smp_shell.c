@@ -1,3 +1,13 @@
+/*
+ * Copyright Runtime.io 2018. All rights reserved.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/** @file
+ * @brief Shell transport for the mcumgr SMP protocol.
+ */
+
 #include <string.h>
 #include <zephyr.h>
 #include <init.h>
@@ -5,7 +15,7 @@
 #include "shell/shell.h"
 #include "mgmt/mgmt.h"
 #include "mgmt/serial.h"
-#include "mgmt/buf.h"
+#include "zephyr_mgmt/buf.h"
 #include "zephyr_smp/zephyr_smp.h"
 
 /* XXX: Make configurable. */
@@ -15,17 +25,20 @@ struct device;
 
 static struct zephyr_smp_transport smp_shell_transport;
 
-static u8_t smp_shell_rx_buf[MCUMGR_SERIAL_BUF_SZ];
+static u8_t smp_shell_rx_buf[SMP_SHELL_MTU];
 static struct mcumgr_serial_rx_ctxt smp_shell_rx_ctxt = {
     .buf = smp_shell_rx_buf,
-    .buf_size = MCUMGR_SERIAL_BUF_SZ,
+    .buf_size = SMP_SHELL_MTU,
 };
 
+/**
+ * Processes a single line (i.e., a single SMP frame)
+ */
 static int
 smp_shell_rx_line(const char *line, void *arg)
 {
     struct net_buf *nb;
-    uint8_t *raw;
+    u8_t *raw;
     bool complete;
     int raw_len;
     int i;
@@ -44,7 +57,7 @@ smp_shell_rx_line(const char *line, void *arg)
     return 0;
 }
 
-static uint16_t
+static u16_t
 smp_shell_get_mtu(const struct net_buf *nb)
 {
     return SMP_SHELL_MTU;
@@ -63,7 +76,7 @@ smp_shell_tx_pkt(struct zephyr_smp_transport *zst, struct net_buf *nb)
 {
     int rc;
 
-    rc = mcumgr_serial_tx(nb->data, nb->len, smp_shell_tx_raw, NULL);
+    rc = mcumgr_serial_tx_pkt(nb->data, nb->len, smp_shell_tx_raw, NULL);
     mcumgr_buf_free(nb);
 
     return rc;

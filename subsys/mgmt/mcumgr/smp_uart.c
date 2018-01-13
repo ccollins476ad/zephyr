@@ -1,10 +1,20 @@
+/*
+ * Copyright Runtime.io 2018. All rights reserved.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/** @file
+ * @brief Shell transport for the mcumgr SMP protocol.
+ */
+
 #include <string.h>
 #include <zephyr.h>
 #include <init.h>
 #include "net/buf.h"
 #include "console/uart_mcumgr.h"
 #include "mgmt/mgmt.h"
-#include "mgmt/buf.h"
+#include "zephyr_mgmt/buf.h"
 #include "zephyr_smp/zephyr_smp.h"
 
 /* XXX: Make configurable. */
@@ -15,7 +25,7 @@ struct device;
 static struct zephyr_smp_transport smp_uart_transport;
 
 static void
-smp_uart_rx_pkt(const uint8_t *buf, size_t len)
+smp_uart_rx_pkt(const u8_t *buf, size_t len)
 {
     struct net_buf *nb;
 
@@ -25,7 +35,7 @@ smp_uart_rx_pkt(const uint8_t *buf, size_t len)
     zephyr_smp_rx_req(&smp_uart_transport, nb);
 }
 
-static uint16_t
+static u16_t
 smp_uart_get_mtu(const struct net_buf *nb)
 {
     return SMP_UART_MTU;

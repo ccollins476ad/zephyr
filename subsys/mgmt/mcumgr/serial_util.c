@@ -1,3 +1,9 @@
+/*
+ * Copyright Runtime.io 2018. All rights reserved.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #include <assert.h>
 #include <stdbool.h>
 #include <crc16.h>
@@ -11,6 +17,10 @@ mcumgr_serial_calc_crc(const u8_t *data, int len)
     return crc16(data, len, 0x1021, 0, true);
 }
 
+/**
+ * Base64-decodes an mcumgr request.  The source and destination buffers can
+ * overlap.
+ */
 static int
 mcumgr_serial_decode_req(const u8_t *src, u8_t *dst, int max_dst_len)
 {
@@ -131,13 +141,6 @@ mcumgr_serial_process_frag(struct mcumgr_serial_rx_ctxt *rx_ctxt,
     return true;
 }
 
-/**
- * Processes a received byte.
- *
- * @return                      true if a complete packet was received;
- *                              false if the frame is invalid or if additional
- *                                  fragments are expected.
- */
 bool
 mcumgr_serial_rx_byte(struct mcumgr_serial_rx_ctxt *rx_ctxt, u8_t byte,
                       u8_t **out_pkt, int *out_len)
@@ -195,6 +198,23 @@ mcumgr_serial_tx_small(const void *data, int len, mcumgr_serial_tx_fn *cb,
     return cb(b64, 4, arg);
 }
 
+/**
+ * @brief Transmits a single mcumgr frame over serial.
+ *
+ * @param data                  The frame payload to transmit.  This does not
+ *                                  include a header or CRC.
+ * @param first                 Whether this is the first frame in the packet.
+ * @param len                   The number of untransmitted data bytes in the
+ *                                  packet.
+ * @param crc                   The 16-bit CRC of the entire packet.
+ * @param cb                    A callback used for transmitting raw data.
+ * @param arg                   An optional argument that gets passed to the
+ *                                  callback.
+ * @param out_data_bytes_txed   On success, the number of data bytes
+ *                                  transmitted gets written here.
+ *
+ * @return                      0 on success; negative error code on failure.
+ */
 int
 mcumgr_serial_tx_frame(const u8_t *data, bool first, int len,
                        u16_t crc, mcumgr_serial_tx_fn *cb, void *arg,
@@ -309,8 +329,8 @@ mcumgr_serial_tx_frame(const u8_t *data, bool first, int len,
 }
 
 int
-mcumgr_serial_tx(const u8_t *data, int len, mcumgr_serial_tx_fn *cb,
-                 void *arg)
+mcumgr_serial_tx_pkt(const u8_t *data, int len, mcumgr_serial_tx_fn *cb,
+                     void *arg)
 {
     u16_t crc;
     int data_bytes_txed;
