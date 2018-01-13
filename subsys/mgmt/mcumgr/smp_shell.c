@@ -89,7 +89,7 @@ smp_shell_init(struct device *dev)
 
     zephyr_smp_transport_init(&smp_shell_transport, smp_shell_tx_pkt,
                               smp_shell_get_mtu);
-    shell_register_nlip_handler(smp_shell_rx_line, NULL);
+    shell_register_mcumgr_handler(smp_shell_rx_line, NULL);
 
     return 0;
 }

@@ -56,8 +56,8 @@ static struct k_fifo cmds_queue;
 static shell_cmd_function_t app_cmd_handler;
 static shell_prompt_function_t app_prompt_handler;
 
-static shell_nlip_function_t nlip_cmd_handler;
-static void *nlip_arg;
+static shell_mcumgr_function_t mcumgr_cmd_handler;
+static void *mcumgr_arg;
 
 static const char *get_prompt(void)
 {
@@ -308,19 +308,23 @@ static const struct shell_cmd *get_internal(const char *command)
 	return get_cmd(internal_commands, command);
 }
 
-void shell_register_nlip_handler(shell_nlip_function_t handler, void *arg)
+void shell_register_mcumgr_handler(shell_mcumgr_function_t handler, void *arg)
 {
-    nlip_cmd_handler = handler;
-    nlip_arg = arg;
+    mcumgr_cmd_handler = handler;
+    mcumgr_arg = arg;
 }
 
-static bool shell_line_is_nlip(const char *line)
+static bool shell_line_is_mcumgr(const char *line)
 {
-    if (line[0] == MCUMGR_SERIAL_HDR_PKT_1 && line[1] == MCUMGR_SERIAL_HDR_PKT_2) {
+    if (line[0] == MCUMGR_SERIAL_HDR_PKT_1 &&
+        line[1] == MCUMGR_SERIAL_HDR_PKT_2) {
+
         return true;
     }
 
-    if (line[0] == MCUMGR_SERIAL_HDR_FRAG_1 && line[1] == MCUMGR_SERIAL_HDR_FRAG_2) {
+    if (line[0] == MCUMGR_SERIAL_HDR_FRAG_1 &&
+        line[1] == MCUMGR_SERIAL_HDR_FRAG_2) {
+
         return true;
     }
 
@@ -401,8 +405,12 @@ static void shell(void *p1, void *p2, void *p3)
 
 		cmd = k_fifo_get(&cmds_queue, K_FOREVER);
 
-        if (nlip_cmd_handler != NULL && shell_line_is_nlip(cmd->line)) {
-            nlip_cmd_handler(cmd->line, nlip_arg);
+        /* If the received line is an mcumgr frame, divert it to the mcumgr
+         * handler.  Don't print the shell prompt this time, as that will
+         * interfere with the mcumgr response.
+         */
+        if (mcumgr_cmd_handler != NULL && shell_line_is_mcumgr(cmd->line)) {
+            mcumgr_cmd_handler(cmd->line, mcumgr_arg);
             print_prompt = false;
         } else {
             shell_exec(cmd->line);

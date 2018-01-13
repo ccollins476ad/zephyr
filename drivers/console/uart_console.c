@@ -250,10 +250,10 @@ enum {
 	ESC_ANSI_FIRST,
 	ESC_ANSI_VAL,
 	ESC_ANSI_VAL_2,
-    ESC_NLIP_PKT,
-    ESC_NLIP_PKT_2,
-    ESC_NLIP_DATA,
-    ESC_NLIP_DATA_2,
+    ESC_MCUMGR_PKT,
+    ESC_MCUMGR_PKT_2,
+    ESC_MCUMGR_DATA,
+    ESC_MCUMGR_DATA_2,
 };
 
 static atomic_t esc_state;
@@ -350,76 +350,104 @@ ansi_cmd:
 }
 
 static void
-clear_nlip(void)
+clear_mcumgr(void)
 {
-    atomic_clear_bit(&esc_state, ESC_NLIP_PKT);
-    atomic_clear_bit(&esc_state, ESC_NLIP_PKT_2);
-    atomic_clear_bit(&esc_state, ESC_NLIP_DATA);
-    atomic_clear_bit(&esc_state, ESC_NLIP_DATA_2);
+    atomic_clear_bit(&esc_state, ESC_MCUMGR_PKT);
+    atomic_clear_bit(&esc_state, ESC_MCUMGR_PKT_2);
+    atomic_clear_bit(&esc_state, ESC_MCUMGR_DATA);
+    atomic_clear_bit(&esc_state, ESC_MCUMGR_DATA_2);
 }
 
+/**
+ * These states indicate whether an mcumgr frame is being received.
+ */
+#define CONSOLE_MCUMGR_STATE_NONE       1
+#define CONSOLE_MCUMGR_STATE_HEADER     2
+#define CONSOLE_MCUMGR_STATE_PAYLOAD    3
+
 static int
-read_nlip_byte(uint8_t byte)
+read_mcumgr_byte(uint8_t byte)
 {
     bool data_1;
     bool data_2;
     bool pkt_1;
     bool pkt_2;
 
-    pkt_1 = atomic_test_bit(&esc_state, ESC_NLIP_PKT);
-    pkt_2 = atomic_test_bit(&esc_state, ESC_NLIP_PKT_2);
-    data_1 = atomic_test_bit(&esc_state, ESC_NLIP_DATA);
-    data_2 = atomic_test_bit(&esc_state, ESC_NLIP_DATA_2);
+    pkt_1 = atomic_test_bit(&esc_state, ESC_MCUMGR_PKT);
+    pkt_2 = atomic_test_bit(&esc_state, ESC_MCUMGR_PKT_2);
+    data_1 = atomic_test_bit(&esc_state, ESC_MCUMGR_DATA);
+    data_2 = atomic_test_bit(&esc_state, ESC_MCUMGR_DATA_2);
 
     if (pkt_2 || data_2) {
-        return 2;
+        /* Already fully framed. */
+        return CONSOLE_MCUMGR_STATE_PAYLOAD;
     }
 
     if (pkt_1) {
         if (byte == MCUMGR_SERIAL_HDR_PKT_2) {
-            atomic_set_bit(&esc_state, ESC_NLIP_PKT_2);
-            return 2;
+            /* Final framing byte received. */
+            atomic_set_bit(&esc_state, ESC_MCUMGR_PKT_2);
+            return CONSOLE_MCUMGR_STATE_PAYLOAD;
         }
     } else if (data_1) {
         if (byte == MCUMGR_SERIAL_HDR_FRAG_2) {
-            atomic_set_bit(&esc_state, ESC_NLIP_DATA_2);
-            return 2;
+            /* Final framing byte received. */
+            atomic_set_bit(&esc_state, ESC_MCUMGR_DATA_2);
+            return CONSOLE_MCUMGR_STATE_PAYLOAD;
         }
     } else {
-        clear_nlip();
+        clear_mcumgr();
         if (byte == MCUMGR_SERIAL_HDR_PKT_1) {
-            atomic_set_bit(&esc_state, ESC_NLIP_PKT);
+            /* First framing byte received. */
+            atomic_set_bit(&esc_state, ESC_MCUMGR_PKT);
             uart_console_set_echo(false);
-            return 1;
+            return CONSOLE_MCUMGR_STATE_HEADER;
         } else if (byte == MCUMGR_SERIAL_HDR_FRAG_1) {
-            atomic_set_bit(&esc_state, ESC_NLIP_DATA);
+            /* First framing byte received. */
+            atomic_set_bit(&esc_state, ESC_MCUMGR_DATA);
             uart_console_set_echo(false);
-            return 1;
+            return CONSOLE_MCUMGR_STATE_HEADER;
         }
     }
 
+    /* Non-mcumgr byte received. */
     uart_console_set_echo(true);
-    return 0;
+    return CONSOLE_MCUMGR_STATE_NONE;
 }
 
+/**
+ * @brief Attempts to process a received byte as part of an mcumgr frame.
+ *
+ * @param cmd The console command currently being received.
+ * @param byte The byte just received.
+ *
+ * @return true if the command being received is an mcumgr frame; false if it
+ * is a plain console command.
+ */
 static bool
-handle_nlip(struct console_input *cmd, uint8_t byte)
+handle_mcumgr(struct console_input *cmd, uint8_t byte)
 {
-    int nlip_state;
+    int mcumgr_state;
 
-    nlip_state = read_nlip_byte(byte);
-    if (nlip_state == 0) {
+    mcumgr_state = read_mcumgr_byte(byte);
+    if (mcumgr_state == CONSOLE_MCUMGR_STATE_NONE) {
+        /* Not an mcumgr command; let the normal console handling process the
+         * byte.
+         */
         return false;
     }
 
+    /* The received byte is part of an mcumgr command.  Process the byte and
+     * return true to indicate that normal console handling should ignore it.
+     */
     if (cur + end < sizeof(cmd->line) - 1) {
         insert_char(&cmd->line[cur++], byte, end);
     }
-    if (nlip_state == 2 && byte == '\n') {
+    if (mcumgr_state == CONSOLE_MCUMGR_STATE_PAYLOAD && byte == '\n') {
         cmd->line[cur + end] = '\0';
         k_fifo_put(lines_queue, cmd);
 
-        clear_nlip();
+        clear_mcumgr();
         cmd = NULL;
         cur = 0;
         end = 0;
@@ -466,10 +494,10 @@ void uart_console_isr(struct device *unused)
 			}
 		}
 
-        /* Divert this byte from the shell if it is part of a management
-         * command.
+        /* Divert this byte from normal console handling if it is part of an
+         * mcumgr frame.
          */
-        if (handle_nlip(cmd, byte)) {
+        if (handle_mcumgr(cmd, byte)) {
             continue;
         }
 
