@@ -24,7 +24,7 @@ mcumgr_serial_decode_req(const u8_t *src, u8_t *dst, int max_dst_len)
 static int
 mcumgr_serial_parse_op(const u8_t *buf, int len)
 {
-    uint16_t op;
+    u16_t op;
 
     if (len < sizeof op) {
         return -1;
@@ -43,15 +43,15 @@ mcumgr_serial_parse_op(const u8_t *buf, int len)
 static int
 mcumgr_serial_parse_len(struct mcumgr_serial_rx_ctxt *rx_ctxt)
 {
-    uint16_t len;
+    u16_t len;
 
     if (rx_ctxt->raw_off < sizeof len) {
         return -1;
     }
 
     memcpy(&len, rx_ctxt->buf, sizeof len);
-    rx_ctxt->hdr_len = sys_be16_to_cpu(len);
-    return rx_ctxt->hdr_len;
+    rx_ctxt->pkt_len = sys_be16_to_cpu(len);
+    return rx_ctxt->pkt_len;
 }
 
 static int
@@ -73,14 +73,18 @@ mcumgr_serial_decode_frag(struct mcumgr_serial_rx_ctxt *rx_ctxt,
 }
 
 /**
- * @return true if a complete packet was received.
+ * Processes a received mcumgr frame.
+ *
+ * @return                      true if a complete packet was received;
+ *                              false if the frame is invalid or if additional
+ *                                  fragments are expected.
  */
 static bool
 mcumgr_serial_process_frag(struct mcumgr_serial_rx_ctxt *rx_ctxt,
                            const u8_t *frag, int frag_len)
 {
-    uint16_t crc;
-    uint16_t op;
+    u16_t crc;
+    u16_t op;
     int rc;
 
     op = mcumgr_serial_parse_op(frag, frag_len);
@@ -91,7 +95,7 @@ mcumgr_serial_process_frag(struct mcumgr_serial_rx_ctxt *rx_ctxt,
 
     case MCUMGR_SERIAL_HDR_FRAG:
         if (rx_ctxt->raw_off == 0) {
-            return -1;
+            return false;
         }
         break;
 
@@ -111,11 +115,11 @@ mcumgr_serial_process_frag(struct mcumgr_serial_rx_ctxt *rx_ctxt,
         }
     }
 
-    if (rx_ctxt->raw_off > rx_ctxt->hdr_len + 2) {
+    if (rx_ctxt->raw_off > rx_ctxt->pkt_len + 2) {
         return false;
     }
 
-    if (rx_ctxt->raw_off < rx_ctxt->hdr_len + 2) {
+    if (rx_ctxt->raw_off < rx_ctxt->pkt_len + 2) {
         return false;
     }
 
@@ -128,7 +132,11 @@ mcumgr_serial_process_frag(struct mcumgr_serial_rx_ctxt *rx_ctxt,
 }
 
 /**
- * @return true if a complete packet was received.
+ * Processes a received byte.
+ *
+ * @return                      true if a complete packet was received;
+ *                              false if the frame is invalid or if additional
+ *                                  fragments are expected.
  */
 bool
 mcumgr_serial_rx_byte(struct mcumgr_serial_rx_ctxt *rx_ctxt, u8_t byte,
@@ -139,7 +147,7 @@ mcumgr_serial_rx_byte(struct mcumgr_serial_rx_ctxt *rx_ctxt, u8_t byte,
 
     byte_off = rx_ctxt->b64_off + rx_ctxt->b64_len;
     if (byte_off >= rx_ctxt->buf_size) {
-        /* Overrun; wraparound. */
+        /* Overrun; wrap around. */
         rx_ctxt->raw_off = 0;
         rx_ctxt->b64_off = 0;
         rx_ctxt->b64_len = 0;
@@ -153,7 +161,9 @@ mcumgr_serial_rx_byte(struct mcumgr_serial_rx_ctxt *rx_ctxt, u8_t byte,
     }
 
     rx_ctxt->buf[byte_off] = '\0';
-    complete = mcumgr_serial_process_frag(rx_ctxt, rx_ctxt->buf + rx_ctxt->b64_off, rx_ctxt->b64_len);
+    complete = mcumgr_serial_process_frag(rx_ctxt,
+                                          rx_ctxt->buf + rx_ctxt->b64_off,
+                                          rx_ctxt->b64_len);
 
     if (!complete) {
         rx_ctxt->b64_off += rx_ctxt->b64_len;
@@ -169,8 +179,13 @@ mcumgr_serial_rx_byte(struct mcumgr_serial_rx_ctxt *rx_ctxt, u8_t byte,
     }
 }
 
+/**
+ * Base64-encodes a small chunk of data and transmits it.  The data must be no
+ * larger than three bytes.
+ */
 static int
-mcumgr_serial_tx_small(const void *data, int len, mcumgr_serial_tx_fn *cb, void *arg)
+mcumgr_serial_tx_small(const void *data, int len, mcumgr_serial_tx_fn *cb,
+                       void *arg)
 {
     u8_t b64[4];
 
@@ -181,78 +196,135 @@ mcumgr_serial_tx_small(const void *data, int len, mcumgr_serial_tx_fn *cb, void 
 }
 
 int
-mcumgr_serial_tx(const u8_t *data, int len, mcumgr_serial_tx_fn *cb,
-                 void *arg)
+mcumgr_serial_tx_frame(const u8_t *data, bool first, int len,
+                       u16_t crc, mcumgr_serial_tx_fn *cb, void *arg,
+                       int *out_data_bytes_txed)
 {
     u8_t raw[3];
-    uint16_t u16;
-    uint16_t crc;
-    int off;
+    u16_t u16;
+    int dst_off;
+    int src_off;
     int rem;
     int rc;
-    int i;
 
-    crc = mcumgr_serial_calc_crc(data, len);
+    src_off = 0;
+    dst_off = 0;
 
-    u16 = sys_cpu_to_be16(MCUMGR_SERIAL_HDR_PKT);
+    if (first) {
+        u16 = sys_cpu_to_be16(MCUMGR_SERIAL_HDR_PKT);
+    } else {
+        u16 = sys_cpu_to_be16(MCUMGR_SERIAL_HDR_FRAG);
+    }
+
     rc = cb(&u16, sizeof u16, arg);
     if (rc != 0) {
         return rc;
     }
+    dst_off += 2;
 
-    u16 = sys_cpu_to_be16(len);
-    memcpy(raw, &u16, sizeof u16);
-    raw[2] = data[0];
+    /* Only the first fragment contains the packet length. */
+    if (first) {
+        u16 = sys_cpu_to_be16(len);
+        memcpy(raw, &u16, sizeof u16);
+        raw[2] = data[0];
 
-    rc = mcumgr_serial_tx_small(raw, 3, cb, arg);
-    if (rc != 0) {
-        return rc;
+        rc = mcumgr_serial_tx_small(raw, 3, cb, arg);
+        if (rc != 0) {
+            return rc;
+        }
+
+        src_off++;
+        dst_off += 4;
     }
 
-    i = 1;
     while (1) {
-        rem = len - i;
+        if (dst_off >= MCUMGR_SERIAL_MAX_FRAME - 4) {
+            /* Can't fit any more data in this frame. */
+            break;
+        }
+
+        /* If we have reached the end of the packet, we need to encode and send
+         * the CRC.
+         */
+        rem = len - src_off;
         if (rem == 0) {
             raw[0] = (crc & 0xff00) >> 8;
             raw[1] = crc & 0x00ff;
             rc = mcumgr_serial_tx_small(raw, 2, cb, arg);
+            if (rc != 0) {
+                return rc;
+            }
             break;
-        } else if (rem == 1) {
-            raw[0] = data[i];
+        }
+
+        if (rem == 1) {
+            raw[0] = data[src_off];
             raw[1] = (crc & 0xff00) >> 8;
             raw[2] = crc & 0x00ff;
             rc = mcumgr_serial_tx_small(raw, 3, cb, arg);
+            if (rc != 0) {
+                return rc;
+            }
             break;
-        } else if (rem == 2) {
-            raw[0] = data[i];
-            raw[1] = data[i + 1];
+        }
+
+        if (rem == 2) {
+            raw[0] = data[src_off];
+            raw[1] = data[src_off + 1];
             raw[2] = (crc & 0xff00) >> 8;
             rc = mcumgr_serial_tx_small(raw, 3, cb, arg);
             if (rc != 0) {
                 return rc;
             }
-            off += 4;
 
             raw[0] = crc & 0x00ff;
             rc = mcumgr_serial_tx_small(raw, 1, cb, arg);
+            if (rc != 0) {
+                return rc;
+            }
             break;
-        } else {
-            /* >= 3 raw bytes to send. */
-            memcpy(raw, data + i, 3);
-            rc = mcumgr_serial_tx_small(raw, 3, cb, arg);
         }
 
+        /* Otherwise, just encode payload data. */
+        memcpy(raw, data + src_off, 3);
+        rc = mcumgr_serial_tx_small(raw, 3, cb, arg);
         if (rc != 0) {
             return rc;
         }
 
-        i += 3;
-        off += 4;
+        src_off += 3;
+        dst_off += 4;
     }
 
     rc = cb("\n", 1, arg);
     if (rc != 0) {
         return rc;
+    }
+
+    *out_data_bytes_txed = src_off;
+	return 0;
+}
+
+int
+mcumgr_serial_tx(const u8_t *data, int len, mcumgr_serial_tx_fn *cb,
+                 void *arg)
+{
+    int data_bytes_txed;
+    int src_off;
+
+    /* Calculate CRC of entire packet. */
+    crc = mcumgr_serial_calc_crc(data, len);
+
+    /* Transmit packet as a sequence of frames. */
+    src_off = 0;
+    while (src_off < len) {
+        rc = mcumgr_serial_tx_frame(data, src_off == 0, len - src_off, crc,
+                                    cb, arg, data_bytes_txed);
+        if (rc != 0) {
+            return rc;
+        }
+
+        src_off += data_bytes_txed;
     }
 
 	return 0;
