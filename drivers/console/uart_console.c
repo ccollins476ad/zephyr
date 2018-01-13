@@ -34,6 +34,8 @@
 #include <misc/printk.h>
 #include "mgmt/serial.h"
 
+#define CONFIG_UART_CONSOLE_MCUMGR
+
 static struct device *uart_console_dev;
 
 static bool uart_console_echo_enabled = true;
