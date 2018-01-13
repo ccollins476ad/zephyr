@@ -5,7 +5,7 @@
  */
 
 /** @file
- * @brief Shell transport for the mcumgr SMP protocol.
+ * @brief UART transport for the mcumgr SMP protocol.
  */
 
 #include <string.h>

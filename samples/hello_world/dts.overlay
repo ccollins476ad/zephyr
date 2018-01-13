@@ -6,5 +6,6 @@
 / {
 	chosen {
 		zephyr,code-partition = &slot0_partition;
+        zephyr,uart-mcumgr = &uart0;
 	};
 };

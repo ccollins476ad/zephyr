@@ -79,6 +79,17 @@ config UART_CONSOLE_DEBUG_SERVER_HOOKS
 	  they are some sort of control characters, or let the regular console
 	  code handle them if they are of no special significance to it.
 
+config UART_CONSOLE_MCUMGR
+	bool
+	prompt "Enable UART console mcumgr passthrough"
+	default n
+	depends on UART_CONSOLE
+	help
+	  Enables the UART console to receive mcumgr frames.  When enabled,
+	  the UART console does not process mcumgr frames, but it hands them up
+	  to a higher level module (e.g., the shell).  If unset, incoming
+	  mcumgr frames are dropped.
+
 config USB_UART_CONSOLE
 	bool
 	prompt "Use USB port for console outputs"
@@ -168,17 +179,6 @@ config IPM_CONSOLE_INIT_PRIORITY
 	  Console has to be initialized after the IPM subsystem
 	  it uses.
 
-config	UART_MCUMGR
-	bool
-	prompt "Enable mcumgr UART driver"
-	select UART_INTERRUPT_DRIVEN
-	default n
-	help
-	Enable pipe UART driver. This driver allows application to communicate
-	over UART with custom defined protocol. Driver doesn't inspect received
-	data (as contrary to console UART driver) and all aspects of received
-	protocol data are handled by application provided callback.
-
 config	UART_PIPE
 	bool
 	prompt "Enable pipe UART driver"
@@ -190,13 +190,17 @@ config	UART_PIPE
 	  data (as contrary to console UART driver) and all aspects of received
 	  protocol data are handled by application provided callback.
 
-config	UART_MCUMGR_ON_DEV_NAME
-	string "Device Name of UART Device for mcumgr UART"
-	default "UART_0"
-	#depends on UART_MCUMGR
+config UART_MCUMGR
+	bool
+	prompt "Enable mcumgr UART driver"
+	select UART_INTERRUPT_DRIVEN
+	default n
 	help
-	  This option specifies the name of UART device to be used
-	  for mcumgr UART.
+	  Enable the mcumgr UART driver. This driver allows the application to
+	  communicate over UART using the mcumgr protocol. The driver doesn't
+	  inspect received data (as contrary to console UART driver) and all
+	  aspects of received protocol data are handled by application provided
+	  callback.
 
 if !HAS_DTS
 config UART_PIPE_ON_DEV_NAME
@@ -206,6 +210,14 @@ config UART_PIPE_ON_DEV_NAME
 	help
 	  This option specifies the name of UART device to be used
 	  for pipe UART.
+
+config UART_MCUMGR_ON_DEV_NAME
+	string "Device Name of UART Device for mcumgr UART"
+	default "UART_0"
+	depends on UART_MCUMGR
+	help
+	  This option specifies the name of UART device to be used
+	  for mcumgr UART.
 endif
 
 config XTENSA_SIM_CONSOLE

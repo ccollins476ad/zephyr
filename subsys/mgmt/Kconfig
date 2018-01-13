@@ -1,0 +1,36 @@
+# Kconfig - mcumgr configuration options
+
+#
+# Copyright Runtime.io 2018. All rights reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+menu "Management"
+
+config MCUMGR_SMP_BT
+	bool
+	prompt "Bluetooth mcumgr SMP transport"
+	#select UART_MCUMGR
+	default n
+	help
+	  Enables handling of SMP commands received over Bluetooth.
+
+config MCUMGR_SMP_SHELL
+	bool
+	prompt "Shell mcumgr SMP transport"
+	select UART_CONSOLE_MCUMGR
+	select CONSOLE_SHELL
+	default n
+	help
+	  Enables handling of SMP commands received over shell.
+
+config MCUMGR_SMP_UART
+	bool
+	prompt "UART mcumgr SMP transport"
+	select UART_MCUMGR
+	default n
+	help
+	  Enables handling of SMP commands received over UART.
+
+endmenu

@@ -92,7 +92,7 @@ void main(void)
     }
     bt_conn_cb_register(&conn_callbacks);
 
-    smp_bt_register();
+    //smp_bt_register();
 
     while (1) {
         k_sleep(INT32_MAX);

@@ -1,5 +1,0 @@
-zephyr_sources(serial_util.c)
-zephyr_sources(smp_bt.c)
-zephyr_sources(smp_shell.c)
-#zephyr_sources(smp_uart.c)
-zephyr_sources(buf.c)

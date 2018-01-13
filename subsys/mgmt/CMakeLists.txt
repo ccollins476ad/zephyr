@@ -1,1 +1,4 @@
-add_subdirectory(mcumgr)
+zephyr_sources(serial_util.c)
+zephyr_sources_ifdef(CONFIG_MCUMGR_SMP_BT smp_bt.c)
+zephyr_sources_ifdef(CONFIG_MCUMGR_SMP_SHELL smp_shell.c)
+zephyr_sources_ifdef(CONFIG_MCUMGR_SMP_UART smp_uart.c)

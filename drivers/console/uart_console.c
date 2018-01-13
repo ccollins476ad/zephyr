@@ -34,11 +34,7 @@
 #include <misc/printk.h>
 #include "mgmt/serial.h"
 
-#define CONFIG_UART_CONSOLE_MCUMGR
-
 static struct device *uart_console_dev;
-
-static bool uart_console_echo_enabled = true;
 
 #ifdef CONFIG_UART_CONSOLE_DEBUG_SERVER_HOOKS
 
@@ -153,11 +149,6 @@ static u8_t (*completion_cb)(char *line, u8_t len);
 #define ANSI_HOME          'H'
 #define ANSI_DEL           '~'
 
-static void uart_console_set_echo(bool enabled)
-{
-    uart_console_echo_enabled = enabled;
-}
-
 static int read_uart(struct device *uart, u8_t *buf, unsigned int size)
 {
 	int rx;
@@ -198,9 +189,7 @@ static void insert_char(char *pos, char c, u8_t end)
 	char tmp;
 
 	/* Echo back to console */
-    if (uart_console_echo_enabled) {
-        uart_poll_out(uart_console_dev, c);
-    }
+    uart_poll_out(uart_console_dev, c);
 
 	if (end == 0) {
 		*pos = c;
@@ -404,18 +393,15 @@ read_mcumgr_byte(uint8_t byte)
         if (byte == MCUMGR_SERIAL_HDR_PKT_1) {
             /* First framing byte received. */
             atomic_set_bit(&esc_state, ESC_MCUMGR_PKT);
-            uart_console_set_echo(false);
             return CONSOLE_MCUMGR_STATE_HEADER;
         } else if (byte == MCUMGR_SERIAL_HDR_FRAG_1) {
             /* First framing byte received. */
             atomic_set_bit(&esc_state, ESC_MCUMGR_DATA);
-            uart_console_set_echo(false);
             return CONSOLE_MCUMGR_STATE_HEADER;
         }
     }
 
     /* Non-mcumgr byte received. */
-    uart_console_set_echo(true);
     return CONSOLE_MCUMGR_STATE_NONE;
 }
 
@@ -446,7 +432,7 @@ handle_mcumgr(struct console_input *cmd, uint8_t byte)
      * return true to indicate that normal console handling should ignore it.
      */
     if (cur + end < sizeof(cmd->line) - 1) {
-        insert_char(&cmd->line[cur++], byte, end);
+        cmd->line[cur++] = byte;
     }
     if (mcumgr_state == CONSOLE_MCUMGR_STATE_PAYLOAD && byte == '\n') {
         cmd->line[cur + end] = '\0';
