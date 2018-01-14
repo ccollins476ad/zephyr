@@ -140,7 +140,7 @@ static const struct boot_swap_table boot_swap_tables[] = {
 	},
 };
 #define BOOT_SWAP_TABLES_COUNT \
-    (sizeof boot_swap_tables / sizeof boot_swap_tables[0])
+	(sizeof boot_swap_tables / sizeof boot_swap_tables[0])
 
 static struct device *flash_dev;
 
@@ -301,8 +301,7 @@ static int boot_read_swap_state(u32_t bank_offs, struct boot_swap_state *state)
 	return 0;
 }
 
-int
-boot_swap_type(void)
+int boot_swap_type(void)
 {
 	const struct boot_swap_table *table;
 	struct boot_swap_state state_slot0;

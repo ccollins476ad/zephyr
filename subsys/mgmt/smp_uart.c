@@ -21,44 +21,41 @@ struct device;
 
 static struct zephyr_smp_transport smp_uart_transport;
 
-static void
-smp_uart_rx_pkt(const u8_t *buf, size_t len)
+static void smp_uart_rx_pkt(const u8_t *buf, size_t len)
 {
-    struct net_buf *nb;
+	struct net_buf *nb;
 
-    nb = mcumgr_buf_alloc();
-    net_buf_add_mem(nb, buf, len);
+	nb = mcumgr_buf_alloc();
+	net_buf_add_mem(nb, buf, len);
 
-    zephyr_smp_rx_req(&smp_uart_transport, nb);
+	zephyr_smp_rx_req(&smp_uart_transport, nb);
 }
 
-static u16_t
-smp_uart_get_mtu(const struct net_buf *nb)
+static u16_t smp_uart_get_mtu(const struct net_buf *nb)
 {
-    return CONFIG_MCUMGR_SMP_UART;
+	return CONFIG_MCUMGR_SMP_UART;
 }
 
-static int
-smp_uart_tx_pkt(struct zephyr_smp_transport *zst, struct net_buf *nb)
+static int smp_uart_tx_pkt(struct zephyr_smp_transport *zst,
+                           struct net_buf *nb)
 {
-    int rc;
+	int rc;
 
-    rc = uart_mcumgr_send(nb->data, nb->len);
-    mcumgr_buf_free(nb);
+	rc = uart_mcumgr_send(nb->data, nb->len);
+	mcumgr_buf_free(nb);
 
-    return rc;
+	return rc;
 }
 
-static int
-smp_uart_init(struct device *dev)
+static int smp_uart_init(struct device *dev)
 {
-    ARG_UNUSED(dev);
+	ARG_UNUSED(dev);
 
-    zephyr_smp_transport_init(&smp_uart_transport, smp_uart_tx_pkt,
-                              smp_uart_get_mtu);
-    uart_mcumgr_register(smp_uart_rx_pkt);
+	zephyr_smp_transport_init(&smp_uart_transport, smp_uart_tx_pkt,
+	                          smp_uart_get_mtu);
+	uart_mcumgr_register(smp_uart_rx_pkt);
 
-    return 0;
+	return 0;
 }
 
 SYS_INIT(smp_uart_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);

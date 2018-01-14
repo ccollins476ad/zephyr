@@ -56,18 +56,18 @@ extern "C" {
  * @brief Maintains state for an incoming mcumgr request packet.
  */
 struct mcumgr_serial_rx_ctxt {
-    /* Contains the request packet as it is received.  The packet is
-     * base64-decoded in place, partially overwriting the encoded data.
-     */
-    u8_t *buf;
-    int buf_size;
+	/* Contains the request packet as it is received.  The packet is
+	 * base64-decoded in place, partially overwriting the encoded data.
+	 */
+	u8_t *buf;
+	int buf_size;
 
-    int raw_off;
-    int b64_off;
-    int b64_len;
+	int raw_off;
+	int b64_off;
+	int b64_len;
 
-    /* Length of full packet, as read from header. */
-    u16_t pkt_len;
+	/* Length of full packet, as read from header. */
+	u16_t pkt_len;
 };
 
 /** @typedef mcumgr_serial_tx_fn
@@ -110,7 +110,7 @@ bool mcumgr_serial_rx_byte(struct mcumgr_serial_rx_ctxt *rx_ctxt, u8_t byte,
  * @return                      0 on success; negative error code on failure.
  */
 int mcumgr_serial_tx_pkt(const u8_t *data, int len, mcumgr_serial_tx_fn *cb,
-                     void *arg);
+                         void *arg);
 
 #ifdef __cplusplus
 }
