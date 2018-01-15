@@ -8,12 +8,6 @@
 # mcuboot, which is easy to customize on a per-board basis. It can be
 # used as a starting point for new applications.
 
-# The board should be set to a supported target. The default is
-# frdm_k64f.
-#if (NOT DEFINED BOARD)
-  #set(BOARD frdm_k64f)
-#endif()
-
 # The default top-level application configuration is prj.conf.
 # You can place additional board-specific files in boards/${BOARD}.conf,
 # and they will be merged into the configuration along with prj.conf.
@@ -27,10 +21,6 @@ endmacro()
 
 # Zephyr uses Device Tree (DT) to describe some board hardware
 # configuration.
-#
-# For this simple example, all we need to tell DT is where on the chip
-# flash to link this application image so mcuboot can find it. We do
-# this with a device tree overlay file.
 #
 # See the Zephyr documentation for more information on DT:
 # http://docs.zephyrproject.org/devices/dts/device_tree.html
@@ -49,12 +39,6 @@ endif()
 
 target_sources(app PRIVATE
     src/main.c
-)
-
-target_include_directories(app PRIVATE
-    src/mcuboot/boot/bootutil/include
-    src/mcuboot/boot/bootutil/src
-    src/mcuboot/boot/zephyr/include
 )
 
 zephyr_link_libraries(MCUMGR NFFS)
