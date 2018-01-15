@@ -1,11 +1,13 @@
 /*
- * Basic Device Tree overlay file for chain-loading by mcuboot.
- * See the Makefile for more information.
+ * Basic Device Tree overlay file.
  */
 
 / {
 	chosen {
-        /* Use uart0 for the mcumgr UART transport. */
-        zephyr,uart-mcumgr = &uart0;
+		/* Required by mcuboot. */
+		zephyr,code-partition = &slot0_partition;
+
+		/* Use uart0 for the mcumgr UART transport. */
+		zephyr,uart-mcumgr = &uart0;
 	};
 };
