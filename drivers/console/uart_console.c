@@ -32,6 +32,7 @@
 #include <linker/sections.h>
 #include <atomic.h>
 #include <misc/printk.h>
+#include "mgmt/serial.h"
 
 static struct device *uart_console_dev;
 
@@ -239,7 +240,11 @@ enum {
 	ESC_ANSI,
 	ESC_ANSI_FIRST,
 	ESC_ANSI_VAL,
-	ESC_ANSI_VAL_2
+	ESC_ANSI_VAL_2,
+	ESC_MCUMGR_PKT,
+	ESC_MCUMGR_PKT_2,
+	ESC_MCUMGR_DATA,
+	ESC_MCUMGR_DATA_2,
 };
 
 static atomic_t esc_state;
@@ -335,6 +340,114 @@ ansi_cmd:
 	atomic_clear_bit(&esc_state, ESC_ANSI);
 }
 
+#ifdef CONFIG_UART_CONSOLE_MCUMGR
+
+static void clear_mcumgr(void)
+{
+	atomic_clear_bit(&esc_state, ESC_MCUMGR_PKT);
+	atomic_clear_bit(&esc_state, ESC_MCUMGR_PKT_2);
+	atomic_clear_bit(&esc_state, ESC_MCUMGR_DATA);
+	atomic_clear_bit(&esc_state, ESC_MCUMGR_DATA_2);
+}
+
+/**
+ * These states indicate whether an mcumgr frame is being received.
+ */
+#define CONSOLE_MCUMGR_STATE_NONE       1
+#define CONSOLE_MCUMGR_STATE_HEADER     2
+#define CONSOLE_MCUMGR_STATE_PAYLOAD    3
+
+static int read_mcumgr_byte(uint8_t byte)
+{
+	bool data_1;
+	bool data_2;
+	bool pkt_1;
+	bool pkt_2;
+
+	pkt_1 = atomic_test_bit(&esc_state, ESC_MCUMGR_PKT);
+	pkt_2 = atomic_test_bit(&esc_state, ESC_MCUMGR_PKT_2);
+	data_1 = atomic_test_bit(&esc_state, ESC_MCUMGR_DATA);
+	data_2 = atomic_test_bit(&esc_state, ESC_MCUMGR_DATA_2);
+
+	if (pkt_2 || data_2) {
+		/* Already fully framed. */
+		return CONSOLE_MCUMGR_STATE_PAYLOAD;
+	}
+
+	if (pkt_1) {
+		if (byte == MCUMGR_SERIAL_HDR_PKT_2) {
+			/* Final framing byte received. */
+			atomic_set_bit(&esc_state, ESC_MCUMGR_PKT_2);
+			return CONSOLE_MCUMGR_STATE_PAYLOAD;
+		}
+	} else if (data_1) {
+		if (byte == MCUMGR_SERIAL_HDR_FRAG_2) {
+			/* Final framing byte received. */
+			atomic_set_bit(&esc_state, ESC_MCUMGR_DATA_2);
+			return CONSOLE_MCUMGR_STATE_PAYLOAD;
+		}
+	} else {
+		clear_mcumgr();
+		if (byte == MCUMGR_SERIAL_HDR_PKT_1) {
+			/* First framing byte received. */
+			atomic_set_bit(&esc_state, ESC_MCUMGR_PKT);
+			return CONSOLE_MCUMGR_STATE_HEADER;
+		} else if (byte == MCUMGR_SERIAL_HDR_FRAG_1) {
+			/* First framing byte received. */
+			atomic_set_bit(&esc_state, ESC_MCUMGR_DATA);
+			return CONSOLE_MCUMGR_STATE_HEADER;
+		}
+	}
+
+	/* Non-mcumgr byte received. */
+	return CONSOLE_MCUMGR_STATE_NONE;
+}
+
+/**
+ * @brief Attempts to process a received byte as part of an mcumgr frame.
+ *
+ * @param cmd The console command currently being received.
+ * @param byte The byte just received.
+ *
+ * @return true if the command being received is an mcumgr frame; false if it
+ * is a plain console command.
+ */
+static bool handle_mcumgr(struct console_input *cmd, uint8_t byte)
+{
+	int mcumgr_state;
+
+	mcumgr_state = read_mcumgr_byte(byte);
+	if (mcumgr_state == CONSOLE_MCUMGR_STATE_NONE) {
+		/* Not an mcumgr command; let the normal console handling
+		 * process the byte.
+		 */
+		cmd->is_mcumgr = 0;
+		return false;
+	}
+
+	/* The received byte is part of an mcumgr command.  Process the byte
+	 * and return true to indicate that normal console handling should
+	 * ignore it.
+	 */
+	if (cur + end < sizeof(cmd->line) - 1) {
+		cmd->line[cur++] = byte;
+	}
+	if (mcumgr_state == CONSOLE_MCUMGR_STATE_PAYLOAD && byte == '\n') {
+		cmd->line[cur + end] = '\0';
+		cmd->is_mcumgr = 1;
+		k_fifo_put(lines_queue, cmd);
+
+		clear_mcumgr();
+		cmd = NULL;
+		cur = 0;
+		end = 0;
+	}
+
+	return true;
+}
+
+#endif /* CONFIG_UART_CONSOLE_MCUMGR */
+
 void uart_console_isr(struct device *unused)
 {
 	ARG_UNUSED(unused);
@@ -373,6 +486,15 @@ void uart_console_isr(struct device *unused)
 			}
 		}
 
+#ifdef CONFIG_UART_CONSOLE_MCUMGR
+		/* Divert this byte from normal console handling if it is part
+		 * of an mcumgr frame.
+		 */
+		if (handle_mcumgr(cmd, byte)) {
+			continue;
+		}
+#endif /* CONFIG_UART_CONSOLE_MCUMGR */
+
 		/* Handle ANSI escape mode */
 		if (atomic_test_bit(&esc_state, ESC_ANSI)) {
 			handle_ansi(byte, cmd->line);
@@ -389,8 +511,8 @@ void uart_console_isr(struct device *unused)
 			continue;
 		}
 
-		/* Handle special control characters */
 		if (!isprint(byte)) {
+			/* Handle special control characters */
 			switch (byte) {
 			case DEL:
 				if (cur > 0) {
@@ -417,8 +539,6 @@ void uart_console_isr(struct device *unused)
 			default:
 				break;
 			}
-
-			continue;
 		}
 
 		/* Ignore characters if there's no more buffer space */
