@@ -56,4 +56,28 @@ config MCUMGR_SMP_UART_MTU
 	  Maximum size of SMP frames sent and received over UART.
 endif
 
+config MCUMGR_BUF_COUNT
+    int
+    prompt "Number of mcumgr buffers"
+    default 8
+    help
+      The number of net_bufs to allocate for mcumgr.  These buffers are used
+      for both requests and responses.
+
+config MCUMGR_BUF_SIZE
+    int
+    prompt "Size of each mcumgr buffer"
+    default 1024
+    help
+      The size, in bytes, of each mcumgr buffer.
+
+config MCUMGR_BUF_USER_DATA_SIZE
+    int
+    prompt "Size of mcumgr buffer user data"
+    default 7
+    help
+      The size, in bytes, of user data to allocate for each mcumgr buffer.
+      Different mcumgr transports impose different requirements for this
+      setting.  A value of 7 is sufficient for UART, shell, and bluetooth.
+
 endmenu

@@ -62,7 +62,7 @@ static int mcumgr_serial_parse_len(struct mcumgr_serial_rx_ctxt *rx_ctxt)
 }
 
 static int mcumgr_serial_decode_frag(struct mcumgr_serial_rx_ctxt *rx_ctxt,
-                          const u8_t *frag)
+                                     const u8_t *frag)
 {
 	int dec_len;
 

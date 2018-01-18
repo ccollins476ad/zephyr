@@ -22,7 +22,9 @@
 
 static const struct bt_data ad[] = {
     BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
-    BT_DATA_BYTES(BT_DATA_UUID16_ALL, 0x0d, 0x18, 0x0f, 0x18, 0x05, 0x18),
+    BT_DATA_BYTES(BT_DATA_UUID128_ALL,
+        0x84, 0xaa, 0x60, 0x74, 0x52, 0x8a, 0x8b, 0x86,
+        0xd3, 0x4c, 0xb7, 0x1d, 0x1d, 0xdc, 0x53, 0x8d),
 };
 
 static const struct bt_data sd[] = {
@@ -36,7 +38,7 @@ static void advertise(void)
     bt_le_adv_stop();
 
     rc = bt_le_adv_start(BT_LE_ADV_CONN, ad, ARRAY_SIZE(ad),
-                  sd, ARRAY_SIZE(sd));
+                         sd, ARRAY_SIZE(sd));
     if (rc) {
         printk("Advertising failed to start (rc %d)\n", rc);
         return;
@@ -81,10 +83,12 @@ void main(void)
 {
     int rc;
 
+    /* Register the built-in mcumgr command handlers. */
     os_mgmt_register_group();
     img_mgmt_register_group();
     fs_mgmt_register_group();
 
+    /* Enable Bluetooth. */
     rc = bt_enable(bt_ready);
     if (rc != 0) {
         printk("Bluetooth init failed (err %d)\n", rc);
@@ -92,8 +96,12 @@ void main(void)
     }
     bt_conn_cb_register(&conn_callbacks);
 
+    /* Initialize the Bluetooth mcumgr transport. */
     smp_bt_register();
 
+    /* The system work queue handles all incoming mcumgr requests.  Let the
+     * main thread idle while the mcumgr server runs.
+     */
     while (1) {
         k_sleep(INT32_MAX);
     }

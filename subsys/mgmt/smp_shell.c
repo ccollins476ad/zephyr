@@ -15,8 +15,8 @@
 #include "shell/shell.h"
 #include "mgmt/mgmt.h"
 #include "mgmt/serial.h"
-#include "zephyr_mgmt/buf.h"
-#include "zephyr_smp/zephyr_smp.h"
+#include "mgmt/buf.h"
+#include "mgmt/smp.h"
 
 struct device;
 
