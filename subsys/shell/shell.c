@@ -9,7 +9,6 @@
  * @brief Console handler implementation of shell.h API
  */
 
-
 #include <zephyr.h>
 #include <stdio.h>
 #include <string.h>
@@ -18,6 +17,7 @@
 #include <console/console.h>
 #include <misc/printk.h>
 #include <misc/util.h>
+#include "mgmt/serial.h"
 
 #ifdef CONFIG_UART_CONSOLE
 #include <console/uart_console.h>
@@ -61,6 +61,9 @@ static struct k_fifo cmds_queue;
 
 static shell_cmd_function_t app_cmd_handler;
 static shell_prompt_function_t app_prompt_handler;
+
+static shell_mcumgr_function_t mcumgr_cmd_handler;
+static void *mcumgr_arg;
 
 static const char *get_prompt(void)
 {
@@ -347,6 +350,11 @@ static const struct shell_cmd *get_internal(const char *command)
 	return get_cmd(internal_commands, command);
 }
 
+void shell_register_mcumgr_handler(shell_mcumgr_function_t handler, void *arg)
+{
+	mcumgr_cmd_handler = handler;
+	mcumgr_arg = arg;
+}
 
 int shell_exec(char *line)
 {
@@ -412,6 +420,8 @@ done:
 
 static void shell(void *p1, void *p2, void *p3)
 {
+	bool print_prompt = true;
+
 	ARG_UNUSED(p1);
 	ARG_UNUSED(p2);
 	ARG_UNUSED(p3);
@@ -421,11 +431,23 @@ static void shell(void *p1, void *p2, void *p3)
 	while (1) {
 		struct console_input *cmd;
 
-		printk("%s", get_prompt());
+		if (print_prompt) {
+			printk("%s", get_prompt());
+		}
 
 		cmd = k_fifo_get(&cmds_queue, K_FOREVER);
 
-		shell_exec(cmd->line);
+		/* If the received line is an mcumgr frame, divert it to the
+		 * mcumgr handler.  Don't print the shell prompt this time, as
+		 * that will interfere with the mcumgr response.
+		 */
+		if (mcumgr_cmd_handler != NULL && cmd->is_mcumgr) {
+			mcumgr_cmd_handler(cmd->line, mcumgr_arg);
+			print_prompt = false;
+		} else {
+			shell_exec(cmd->line);
+			print_prompt = true;
+		}
 
 		k_fifo_put(&avail_queue, cmd);
 	}
