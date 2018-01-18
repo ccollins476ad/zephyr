@@ -1,0 +1,83 @@
+# Kconfig - mcumgr configuration options
+
+#
+# Copyright Runtime.io 2018. All rights reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+menu "Management"
+
+config MCUMGR_SMP_BT
+	bool
+	prompt "Bluetooth mcumgr SMP transport"
+	select MCUMGR
+	select BT
+	select BT_PERIPHERAL
+	default n
+	help
+	  Enables handling of SMP commands received over Bluetooth.
+
+config MCUMGR_SMP_SHELL
+	bool
+	prompt "Shell mcumgr SMP transport"
+	select MCUMGR
+	select UART_CONSOLE_MCUMGR
+	select CONSOLE_SHELL
+	default n
+	help
+	  Enables handling of SMP commands received over shell.
+
+if MCUMGR_SMP_SHELL
+config MCUMGR_SMP_SHELL_MTU
+	int
+	prompt "Shell SMP MTU"
+	default 1024
+	help
+	  Maximum size of SMP frames sent and received over shell.
+endif
+
+
+config MCUMGR_SMP_UART
+	bool
+	prompt "UART mcumgr SMP transport"
+	select MCUMGR
+	select UART_MCUMGR
+	default n
+	help
+	  Enables handling of SMP commands received over UART.
+
+if MCUMGR_SMP_UART
+config MCUMGR_SMP_UART_MTU
+	int
+	prompt "UART SMP MTU"
+	default 1024
+	help
+	  Maximum size of SMP frames sent and received over UART.
+endif
+
+config MCUMGR_BUF_COUNT
+    int
+    prompt "Number of mcumgr buffers"
+    default 8
+    help
+      The number of net_bufs to allocate for mcumgr.  These buffers are used
+      for both requests and responses.
+
+config MCUMGR_BUF_SIZE
+    int
+    prompt "Size of each mcumgr buffer"
+    default 1024
+    help
+      The size, in bytes, of each mcumgr buffer.
+
+config MCUMGR_BUF_USER_DATA_SIZE
+    int
+    prompt "Size of mcumgr buffer user data"
+    default 7
+    help
+      The size, in bytes, of user data to allocate for each mcumgr buffer.
+      Different mcumgr transports impose different requirements for this
+      setting.  A value of 7 is sufficient for UART, shell, and bluetooth.
+
+endmenu
