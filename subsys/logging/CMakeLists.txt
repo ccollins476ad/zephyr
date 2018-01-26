@@ -6,4 +6,5 @@ zephyr_sources_ifdef(
   )
 
 zephyr_sources_ifdef(CONFIG_MDLOG mdlog.c)
+zephyr_sources_ifdef(CONFIG_MDLOG_FCB mdlog_fcb.c)
 zephyr_sources_ifdef(CONFIG_MDLOG_CONSOLE mdlog_console.c)
