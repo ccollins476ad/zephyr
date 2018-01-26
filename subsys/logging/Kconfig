@@ -105,4 +105,12 @@ config MDLOG_LEVEL
 	  2 WARN     (MDLOG_WARN)
 	  3 ERROR    (MDLOG_ERROR)
 	  4 CRITICAL (MDLOG_CRITICAL)
+
+config MDLOG_CONSOLE
+	bool
+	prompt "Console support for mdlog"
+	depends on MDLOG
+	default n
+	help
+	  Allow mdlog messages to be written to the console.
 endmenu
