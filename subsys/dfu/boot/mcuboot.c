@@ -76,6 +76,7 @@ struct mcuboot_v1_raw_header {
 #define FLASH_STATE_OFFSET (FLASH_AREA_IMAGE_SCRATCH_OFFSET +\
 			    FLASH_AREA_IMAGE_SCRATCH_SIZE)
 
+#define VERSION_OFFSET(bank_offs) (bank_offs + 20)
 #define COPY_DONE_OFFS(bank_offs) (bank_offs + FLASH_BANK_SIZE -\
 				   BOOT_MAGIC_SZ - BOOT_MAX_ALIGN * 2)
 
@@ -253,6 +254,14 @@ static int boot_copy_done_read(u32_t bank_offs)
 	return boot_flag_read(BOOT_FLAG_COPY_DONE, bank_offs);
 }
 
+static int boot_version_read(u32_t bank_offs, struct image_version *out_ver)
+{
+	u32_t offs;
+
+	offs = VERSION_OFFSET(bank_offs);
+	return flash_read(flash_dev, offs, out_ver, sizeof(*out_ver));
+}
+
 static int boot_magic_write(u32_t bank_offs)
 {
 	u32_t offs;
@@ -345,6 +354,38 @@ int boot_read_bank_header(u32_t bank_offset,
 	return 0;
 }
 
+static int boot_magic_code_check(const u32_t *magic)
+{
+	int i;
+ 
+	if (memcmp(magic, boot_img_magic, sizeof(boot_img_magic)) == 0) {
+		return BOOT_MAGIC_GOOD;
+	}
+ 
+	for (i = 0; i < ARRAY_SIZE(boot_img_magic); i++) {
+		if (magic[i] != 0xffffffff) {
+			return BOOT_MAGIC_BAD;
+		}
+	}
+ 
+	return BOOT_MAGIC_UNSET;
+}
+
+static int boot_magic_state_read(u32_t bank_offs)
+{
+	u32_t magic[4];
+	u32_t offs;
+	int rc;
+
+	offs = MAGIC_OFFS(bank_offs);
+	rc = flash_read(flash_dev, offs, magic, sizeof(magic));
+	if (rc != 0) {
+		return rc;
+	}
+
+	return boot_magic_code_check(magic);
+}
+
 static int boot_read_swap_state(u32_t bank_offs, struct boot_swap_state *state)
 {
 	int rc;
@@ -370,6 +411,11 @@ static int boot_read_swap_state(u32_t bank_offs, struct boot_swap_state *state)
 	state->image_ok = rc;
 
 	return 0;
+}
+
+int boot_current_image_version(struct image_version *out_ver)
+{
+	return boot_version_read(FLASH_BANK0_OFFSET, out_ver);
 }
 
 int boot_swap_type(void)
