@@ -30,13 +30,6 @@
 
 #define BOOT_IMG_VER_STRLEN_MAX 25  /* 255.255.65535.4294967295\0 */
 
-struct image_version {
-	u8_t iv_major;
-	u8_t iv_minor;
-	u16_t iv_revision;
-	u32_t iv_build_num;
-};
-
 /**
  * @brief MCUboot image header representation for image version
  *
@@ -146,7 +139,7 @@ bool boot_is_img_confirmed(void);
  */
 int boot_write_img_confirmed(void);
 
-int boot_current_image_version(struct image_version *out_ver);
+int boot_current_image_version(struct mcuboot_img_sem_ver *out_ver);
 
 /**
  * @brief Determines the action, if any, that mcuboot will take on the next
