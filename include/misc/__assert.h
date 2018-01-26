@@ -61,6 +61,8 @@
 #ifndef ___ASSERT__H_
 #define ___ASSERT__H_
 
+#include "logging/reboot_log.h"
+
 #ifdef CONFIG_ASSERT
 #ifndef __ASSERT_ON
 #define __ASSERT_ON CONFIG_ASSERT_LEVEL
@@ -74,18 +76,19 @@
 
 #if __ASSERT_ON
 #include <misc/printk.h>
-#define __ASSERT(test, fmt, ...)                                   \
-	do {                                                       \
-		if (!(test)) {                                     \
-			printk("ASSERTION FAIL [%s] @ %s:%d:\n\t", \
-			       _STRINGIFY(test),                   \
-			       __FILE__,                           \
-			       __LINE__);                          \
-			printk(fmt, ##__VA_ARGS__);                \
-			for (;;) {                                 \
-				/* spin thread */                  \
-			}				           \
-		}                                                  \
+#define __ASSERT(test, fmt, ...)                                       \
+	do {                                                           \
+		if (!(test)) {                                         \
+			printk("ASSERTION FAIL [%s] @ %s:%d:\n\t",     \
+			       _STRINGIFY(test),                       \
+			       __FILE__,                               \
+			       __LINE__);                              \
+			printk(fmt, ##__VA_ARGS__);                    \
+			reboot_log_write_assert(__FILE__, __LINE__);   \
+			for (;;) {                                     \
+				/* spin thread */                      \
+			}                                              \
+		}                                                      \
 	} while ((0))
 
 #define __ASSERT_EVAL(expr1, expr2, test, fmt, ...)                \
