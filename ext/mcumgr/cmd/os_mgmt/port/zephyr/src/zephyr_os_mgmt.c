@@ -21,14 +21,18 @@
 #include <misc/reboot.h>
 #include <debug/object_tracing.h>
 #include <kernel_structs.h>
+#include "logging/reboot_log.h"
 #include "mgmt/mgmt.h"
 #include "os_mgmt/os_mgmt.h"
 #include "os_mgmt/os_mgmt_impl.h"
 
 static void zephyr_os_mgmt_reset_cb(struct k_timer *timer);
+static void zephyr_os_mgmt_reset_work_handler(struct k_work *work);
 
 static K_TIMER_DEFINE(zephyr_os_mgmt_reset_timer,
                       zephyr_os_mgmt_reset_cb, NULL);
+
+K_WORK_DEFINE(zephyr_os_mgmt_reset_work, zephyr_os_mgmt_reset_work_handler);
 
 #ifdef CONFIG_THREAD_MONITOR
 static const struct k_thread *
@@ -72,9 +76,17 @@ os_mgmt_impl_task_info(int idx, struct os_mgmt_task_info *out_info)
 #endif /* CONFIG_THREAD_MONITOR */
 
 static void
+zephyr_os_mgmt_reset_work_handler(struct k_work *work)
+{
+    reboot_log_write("mcumgr");
+    sys_reboot(SYS_REBOOT_WARM);
+}
+
+static void
 zephyr_os_mgmt_reset_cb(struct k_timer *timer)
 {
-    sys_reboot(SYS_REBOOT_WARM);
+    /* Reboot the system from the system workqueue thread. */
+    k_work_submit(&zephyr_os_mgmt_reset_work);
 }
 
 int
