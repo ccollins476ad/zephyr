@@ -8,6 +8,7 @@
 #include <kernel_structs.h>
 #include <inttypes.h>
 #include <misc/printk.h>
+#include <logging/reboot_log.h>
 
 const NANO_ESF _default_esf = {
 	0xdeadbaad,
@@ -133,7 +134,7 @@ FUNC_NORETURN void _NanoFatalErrorHandler(unsigned int reason,
 FUNC_NORETURN __weak void _SysFatalErrorHandler(unsigned int reason,
 						const NANO_ESF *esf)
 {
-	ARG_UNUSED(esf);
+	ARG_UNUSED(pEsf);
 
 #if !defined(CONFIG_SIMPLE_FATAL_ERROR_HANDLER)
 #ifdef CONFIG_STACK_SENTINEL
@@ -153,6 +154,8 @@ FUNC_NORETURN __weak void _SysFatalErrorHandler(unsigned int reason,
 	k_thread_abort(_current);
 
 hang_system:
+    /* XXX: PC at time of fault unavailable; just log 0. */
+	reboot_log_write_fault(reason, 0);
 #else
 	ARG_UNUSED(reason);
 #endif
