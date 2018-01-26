@@ -17,6 +17,7 @@
 #include <linker/sections.h>
 #include <kernel_structs.h>
 #include <misc/printk.h>
+#include <logging/reboot_log.h>
 
 /**
  *
@@ -41,8 +42,6 @@
 void __weak _SysFatalErrorHandler(unsigned int reason,
 					 const NANO_ESF *pEsf)
 {
-	ARG_UNUSED(pEsf);
-
 #if !defined(CONFIG_SIMPLE_FATAL_ERROR_HANDLER)
 #ifdef CONFIG_STACK_SENTINEL
 	if (reason == _NANO_ERR_STACK_CHK_FAIL) {
@@ -62,8 +61,10 @@ void __weak _SysFatalErrorHandler(unsigned int reason,
 	return;
 
 hang_system:
+	reboot_log_write_fault(reason, pEsf->pc);
 #else
 	ARG_UNUSED(reason);
+	ARG_UNUSED(pEsf);
 #endif
 
 	for (;;) {
