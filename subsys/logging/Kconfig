@@ -113,4 +113,13 @@ config MDLOG_CONSOLE
 	default n
 	help
 	  Allow mdlog messages to be written to the console.
+
+config MDLOG_FCB
+	bool
+	prompt "FCB support for mdlog"
+	depends on MDLOG
+	select FCB
+	default n
+	help
+	  Allow mdlog messages to be written to a flash circular buffer (FCB).
 endmenu
