@@ -72,5 +72,37 @@ config SYS_LOG_EXT_HOOK
 	default n
 	help
 	  Use external hook function for logging.
-endmenu
 
+config MDLOG
+	bool
+	prompt "Enable Managed Logging"
+	default n
+	help
+	  Global switch for managed logging (mdlog).  When turned off log calls
+	  will not be executed.
+
+config MDLOG_PRINTF_MAX_ENTRY_LEN
+	int
+	prompt "Size of buffer used for formatted log writes"
+	depends on MDLOG
+	default 128
+	help
+	  Limits the maximum size of formatted log entries.  A buffer of this size
+	  gets allocated on the stack during calls to mdlog_printf().
+
+config MDLOG_LEVEL
+	int
+	prompt "Minimum mdlog level"
+	depends on MDLOG
+	default 0
+	range 0 4
+	help
+	  Configures the minimum mdlog level for all modules. Attempts to log at
+	  a level lower than the minimum get compiled out.
+	  Levels are:
+	  0 DEBUG    (MDLOG_DEBUG)
+	  1 INFO     (MDLOG_INFO)
+	  2 WARN     (MDLOG_WARN)
+	  3 ERROR    (MDLOG_ERROR)
+	  4 CRITICAL (MDLOG_CRITICAL)
+endmenu
