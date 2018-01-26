@@ -23,6 +23,15 @@
 /** Swap failed because image to be run is not valid */
 #define BOOT_SWAP_TYPE_FAIL     5
 
+#define BOOT_IMG_VER_STRLEN_MAX 25  /* 255.255.65535.4294967295\0 */
+
+struct image_version {
+    uint8_t iv_major;
+    uint8_t iv_minor;
+    uint16_t iv_revision;
+    uint32_t iv_build_num;
+};
+
 /**
  * @brief Marks the image in slot 0 as confirmed. The system will continue
  * booting into the image in slot 0 until told to boot from a different slot.
@@ -32,6 +41,8 @@
  * @return 0 on success, negative errno code on fail.
  */
 int boot_write_img_confirmed(void);
+
+int boot_current_image_version(struct image_version *out_ver);
 
 /**
  * @brief Determines the action, if any, that mcuboot will take on the next
