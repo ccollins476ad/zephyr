@@ -4,3 +4,5 @@ zephyr_sources_ifdef(
   event_logger.c
   kernel_event_logger.c
   )
+
+zephyr_sources_ifdef(CONFIG_MDLOG mdlog.c)
