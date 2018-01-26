@@ -122,4 +122,12 @@ config MDLOG_FCB
 	default n
 	help
 	  Allow mdlog messages to be written to a flash circular buffer (FCB).
+
+config REBOOT_LOG
+	bool
+	prompt "Enable the reboot log"
+	depends on MDLOG
+	default n
+	help
+	  Causes reboots and crashes to be persisted to the reboot log.
 endmenu
