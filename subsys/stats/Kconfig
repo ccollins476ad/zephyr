@@ -1,0 +1,27 @@
+# Kconfig - mcumgr configuration options
+
+#
+# Copyright Runtime.io 2018. All rights reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+config STATS
+	bool
+	prompt "Statistics support"
+	default n
+	help
+	  Enable per-module event counters for troubleshooting, maintenance,
+	  and usage monitoring.  Statistics can be retrieved with the mcumgr
+	  management subsystem.
+
+config STATS_NAMES
+	bool
+	prompt "Statistic names"
+	depends on STATS
+	default n
+	help
+	  Include a full name string for each statistic in the build.  If this
+	  setting is disabled, statistics are assigned generic names of the
+	  form "s0", "s1", etc.  Enabling this setting simplifies debugging,
+	  but results in a larger code size.
