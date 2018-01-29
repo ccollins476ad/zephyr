@@ -1,0 +1,22 @@
+# Kconfig - mcumgr configuration options
+
+#
+# Copyright Runtime.io 2018. All rights reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+config STATS
+	bool
+	prompt "Statistics support"
+	default n
+	help
+	  Support for per-module statistics.
+
+config STATS_NAMES
+	bool
+	prompt "Statistic names"
+    depends on STATS
+	default n
+	help
+	  Include name strings for each statistic in the build.
