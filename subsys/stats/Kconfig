@@ -16,7 +16,7 @@ config STATS
 config STATS_NAMES
 	bool
 	prompt "Statistic names"
-    depends on STATS
+	depends on STATS
 	default n
 	help
 	  Include name strings for each statistic in the build.
