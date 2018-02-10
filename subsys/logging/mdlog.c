@@ -27,7 +27,7 @@
 
 static struct mdlog *mdlog_list;
 static u32_t mdlog_next_index;
-static uint8_t mdlog_written;
+static u8_t mdlog_written;
 
 struct mdlog_int_str_pair {
 	u8_t id;
@@ -71,16 +71,16 @@ const char *
 mdlog_module_name(u8_t module_id)
 {
 	return mdlog_str_find(mdlog_modules,
-	                      sizeof mdlog_modules / sizeof mdlog_modules[0],
-	                      module_id);
+			      ARRAY_SIZE(mdlog_modules),
+			      module_id);
 }
 
 const char *
 mdlog_level_name(u8_t level_id)
 {
 	return mdlog_str_find(mdlog_levels,
-	                      sizeof mdlog_levels / sizeof mdlog_levels[0],
-	                      level_id);
+			      ARRAY_SIZE(mdlog_levels),
+			      level_id);
 }
 
 struct mdlog *
@@ -118,15 +118,15 @@ struct mdlog_read_hdr_arg {
 
 static int
 mdlog_read_hdr_walk(struct mdlog *mdlog, struct mdlog_offset *mdlog_offset,
-                    const void *src, uint16_t len)
+		    const void *src, u16_t len)
 {
 	struct mdlog_read_hdr_arg *arg;
 	int num_bytes;
 
 	arg = mdlog_offset->lo_arg;
 
-	num_bytes = mdlog_read(mdlog, src, arg->hdr, 0, sizeof *arg->hdr);
-	if (num_bytes >= sizeof *arg->hdr) {
+	num_bytes = mdlog_read(mdlog, src, arg->hdr, 0, sizeof(*arg->hdr));
+	if (num_bytes >= sizeof(*arg->hdr)) {
 		arg->read_success = 1;
 	}
 
@@ -170,7 +170,7 @@ mdlog_read_last_hdr(struct mdlog *mdlog, struct mdlog_entry_hdr *out_hdr)
  */
 int
 mdlog_register(const char *name, struct mdlog *mdlog,
-               const struct mdlog_handler *lh, void *arg, uint8_t level)
+	       const struct mdlog_handler *lh, void *arg, u8_t level)
 {
 	struct mdlog_entry_hdr hdr;
 	unsigned int key;
@@ -212,12 +212,12 @@ mdlog_register(const char *name, struct mdlog *mdlog,
 }
 
 int
-mdlog_append(struct mdlog *mdlog, uint16_t module, uint16_t level,
-             void *data, uint16_t len)
+mdlog_append(struct mdlog *mdlog, u16_t module, u16_t level,
+	     void *data, u16_t len)
 {
 	struct mdlog_entry_hdr *ue;
 	unsigned int key;
-	uint32_t idx;
+	u32_t idx;
 	int rc;
 
 	if (mdlog->l_name == NULL || mdlog->l_handler == NULL) {
@@ -259,14 +259,14 @@ mdlog_append(struct mdlog *mdlog, uint16_t module, uint16_t level,
 }
 
 static void
-mdlog_vprintf(struct mdlog *mdlog, uint16_t module, uint16_t level,
-              const char * restrict msg, va_list ap)
+mdlog_vprintf(struct mdlog *mdlog, u16_t module, u16_t level,
+	      const char *restrict msg, va_list ap)
 {
 	char buf[MDLOG_ENTRY_HDR_SIZE + CONFIG_MDLOG_PRINTF_MAX_ENTRY_LEN];
 	int len;
 
 	len = vsnprintf(&buf[MDLOG_ENTRY_HDR_SIZE],
-	                CONFIG_MDLOG_PRINTF_MAX_ENTRY_LEN, msg, ap);
+			CONFIG_MDLOG_PRINTF_MAX_ENTRY_LEN, msg, ap);
 	if (len >= CONFIG_MDLOG_PRINTF_MAX_ENTRY_LEN) {
 		len = CONFIG_MDLOG_PRINTF_MAX_ENTRY_LEN - 1;
 	}
@@ -275,8 +275,8 @@ mdlog_vprintf(struct mdlog *mdlog, uint16_t module, uint16_t level,
 }
 
 void
-mdlog_printf(struct mdlog *mdlog, uint16_t module, uint16_t level,
-             const char * restrict msg, ...)
+mdlog_printf(struct mdlog *mdlog, u16_t module, u16_t level,
+	     const char *restrict msg, ...)
 {
 	va_list ap;
 
@@ -287,7 +287,7 @@ mdlog_printf(struct mdlog *mdlog, uint16_t module, uint16_t level,
 
 int
 mdlog_walk(struct mdlog *mdlog, mdlog_walk_fn *walk_func,
-           struct mdlog_offset *mdlog_offset)
+	   struct mdlog_offset *mdlog_offset)
 {
 	return mdlog->l_handler->walk(mdlog, walk_func, mdlog_offset);
 }
@@ -299,7 +299,7 @@ mdlog_walk(struct mdlog *mdlog, mdlog_walk_fn *walk_func,
  */
 int
 mdlog_read(struct mdlog *mdlog, const void *descriptor, void *buf,
-           uint16_t off, uint16_t len)
+	   u16_t off, u16_t len)
 {
 	return mdlog->l_handler->read(mdlog, descriptor, buf, off, len);
 }
