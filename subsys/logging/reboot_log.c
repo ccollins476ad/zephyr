@@ -46,8 +46,8 @@ reboot_log_ver_str(char *buf)
 	rc = boot_current_image_version(&ver);
 	if (rc == 0) {
 		sprintf(buf, "%u.%u.%u.%u",
-		        ver.iv_major, ver.iv_minor, ver.iv_revision,
-		        (unsigned int)ver.iv_build_num);
+			ver.iv_major, ver.iv_minor, ver.iv_revision,
+			(unsigned int)ver.iv_build_num);
 		return buf;
 	}
 #endif
@@ -71,9 +71,9 @@ reboot_log_write(const char *reason)
 
 	/* XXX: No reboot counter. */
 
-	MDLOG_CRITICAL(reboot_log_mdlog, MDLOG_MODULE_REBOOT, 
-	               "rsn:%s cnt:0 img:%s", reason,
-	               reboot_log_ver_str(ver_str));
+	MDLOG_CRITICAL(reboot_log_mdlog, MDLOG_MODULE_REBOOT,
+		       "rsn:%s cnt:0 img:%s", reason,
+		       reboot_log_ver_str(ver_str));
 
 	/* XXX: Persist the fact that a reboot entry has been written. */
 
@@ -85,7 +85,7 @@ reboot_log_write_fault(int fault_type, u32_t pc)
 {
 	char buf[32];
 
-	snprintf(buf, sizeof buf, "fault,type=%d,$pc=0x%x", fault_type, pc);
+	snprintf(buf, sizeof(buf), "fault,type=%d,$pc=0x%x", fault_type, pc);
 	return reboot_log_write(buf);
 }
 
@@ -94,6 +94,6 @@ reboot_log_write_assert(const char *file, int line)
 {
 	char buf[128];
 
-	snprintf(buf, sizeof buf, "assert,%s:%d", file, line);
+	snprintf(buf, sizeof(buf), "assert,%s:%d", file, line);
 	return reboot_log_write(buf);
 }
