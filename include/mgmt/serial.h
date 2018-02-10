@@ -10,7 +10,7 @@
  *
  * Mcumgr packets sent over serial are fragmented into frames of 128 bytes or
  * fewer.
- * 
+ *
  * The initial frame in a packet has the following format:
  *     offset 0:    0x06 0x09
  *     === Begin base64 encoding ===
@@ -19,7 +19,7 @@
  *     offset ?:    <crc16> (if final frame)
  *     === End base64 encoding ===
  *     offset ?:    0x0a (newline)
- * 
+ *
  * All subsequent frames have the following format:
  *     offset 0:    0x04 0x14
  *     === Begin base64 encoding ===
@@ -27,10 +27,10 @@
  *     offset ?:    <crc16> (if final frame)
  *     === End base64 encoding ===
  *     offset ?:    0x0a (newline)
- * 
+ *
  * All integers are represented in big-endian.  The packet fields are described
  * below:
- * 
+ *
  * | Field          | Description                                             |
  * | -------------- | ------------------------------------------------------- |
  * | 0x06 0x09      | Byte pair indicating the start of a packet.             |
@@ -42,14 +42,14 @@
  * |                | This field is only present in the final frame of a      |
  * |                | packet.                                                 |
  * | Newline        | A 0x0a byte; terminates a frame.                        |
- * 
+ *
  * The packet is fully received when <packet-length> bytes of body has been
  * received.
- * 
+ *
  * ## CRC details
- * 
+ *
  * The CRC16 should be calculated with the following parameters:
- * 
+ *
  * | Field         | Value         |
  * | ------------- | ------------- |
  * | Polynomial    | 0x1021        |
@@ -119,7 +119,7 @@ typedef int mcumgr_serial_tx_fn(const void *data, int len, void *arg);
  *                                  bytes are expected.
  */
 bool mcumgr_serial_rx_byte(struct mcumgr_serial_rx_ctxt *rx_ctxt, u8_t byte,
-                           u8_t **out_pkt, int *out_len);
+			   u8_t **out_pkt, int *out_len);
 
 /**
  * @brief Encodes and transmits an mcumgr packet over serial.
@@ -132,7 +132,7 @@ bool mcumgr_serial_rx_byte(struct mcumgr_serial_rx_ctxt *rx_ctxt, u8_t byte,
  * @return                      0 on success; negative error code on failure.
  */
 int mcumgr_serial_tx_pkt(const u8_t *data, int len, mcumgr_serial_tx_fn *cb,
-                         void *arg);
+			 void *arg);
 
 #ifdef __cplusplus
 }
