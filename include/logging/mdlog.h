@@ -37,7 +37,10 @@ struct mdlog;
 extern "C" {
 #endif
 
-/** @brief Current log format version.  Indicates the medium-specific entry format. */
+/**
+ * @brief Current log format version.  Indicates the medium-specific entry
+ * format.
+ */
 #define MDLOG_VERSION                   2
 
 /* Predefined log level IDs. */
@@ -95,8 +98,9 @@ struct mdlog_offset {
  * @return                      0 if the walk should proceed;
  *                              nonzero to abort the walk.
  */
-typedef int mdlog_walk_fn(struct mdlog *mdlog, struct mdlog_offset *mdlog_offset,
-                          const void *descriptor, u16_t len);
+typedef int mdlog_walk_fn(struct mdlog *mdlog,
+			  struct mdlog_offset *mdlog_offset,
+			  const void *descriptor, u16_t len);
 
 /** @typedef lh_read_fn
  * @brief Read handler for a specific log medium.
@@ -112,7 +116,7 @@ typedef int mdlog_walk_fn(struct mdlog *mdlog, struct mdlog_offset *mdlog_offset
  *                              Negative error code on failure.
  */
 typedef int lh_read_fn(struct mdlog *mdlog, const void *descriptor, void *buf,
-                       u16_t offset, u16_t len);
+		       u16_t offset, u16_t len);
 
 /** @typedef lh_append_fn
  * @brief Append handler for a specific log medium.
@@ -141,7 +145,8 @@ typedef int lh_append_fn(struct mdlog *mdlog, const void *buf, int len);
  *                              nonzero if the walk was aborted.
  */
 typedef int lh_walk_fn(struct mdlog *mdlog,
-                       mdlog_walk_fn walk_cb, struct mdlog_offset *mdlog_offset);
+		       mdlog_walk_fn walk_cb,
+		       struct mdlog_offset *mdlog_offset);
 
 /** @typedef lh_flush_fn
  * @brief Flush handler for a specific log medium.
@@ -158,7 +163,7 @@ typedef int lh_flush_fn(struct mdlog *mdlog);
  * @brief Fills in the generic functionality for a particular log medium.
  */
 struct mdlog_handler {
-	uint8_t type;
+	u8_t type;
 	lh_read_fn *read;
 	lh_append_fn *append;
 	lh_walk_fn *walk;
@@ -173,7 +178,7 @@ struct mdlog_entry_hdr {
 	u32_t ue_index;
 	u8_t ue_module;
 	u8_t ue_level;
-}__attribute__((__packed__));
+} __attribute__((__packed__));
 
 /**
  * @brief A generic logger with a medium-specific handler.
@@ -186,7 +191,7 @@ struct mdlog {
 	u8_t l_level;
 };
 
-#define MDLOG_ENTRY_HDR_SIZE            (sizeof (struct mdlog_entry_hdr))
+#define MDLOG_ENTRY_HDR_SIZE            (sizeof(struct mdlog_entry_hdr))
 
 /* Logging is disabled by default. */
 #ifndef CONFIG_MDLOG_LEVEL
@@ -195,35 +200,35 @@ struct mdlog {
 
 #if CONFIG_MDLOG_LEVEL <= MDLOG_LEVEL_DEBUG
 #define MDLOG_DEBUG(log__, mod__, msg__, ...) mdlog_printf(log__, mod__, \
-        MDLOG_LEVEL_DEBUG, msg__, ##__VA_ARGS__)
+		    MDLOG_LEVEL_DEBUG, msg__, ##__VA_ARGS__)
 #else
 #define MDLOG_DEBUG(log__, mod__, ...) IGNORE(__VA_ARGS__)
 #endif
 
 #if CONFIG_MDLOG_LEVEL <= MDLOG_LEVEL_INFO
-#define MDLOG_INFO(log__, mod__, msg__, ...) mdlog_printf(log__, mod__, \
-        MDLOG_LEVEL_INFO, msg__, ##__VA_ARGS__)
+#define MDLOG_INFO(log__, mod__, msg__, ...) mdlog_printf(log__, mod__,	\
+		   MDLOG_LEVEL_INFO, msg__, ##__VA_ARGS__)
 #else
 #define MDLOG_INFO(log__, mod__, ...) IGNORE(__VA_ARGS__)
 #endif
 
 #if CONFIG_MDLOG_LEVEL <= MDLOG_LEVEL_WARN
-#define MDLOG_WARN(log__, mod__, msg__, ...) mdlog_printf(log__, mod__, \
-        MDLOG_LEVEL_WARN, msg__, ##__VA_ARGS__)
+#define MDLOG_WARN(log__, mod__, msg__, ...) mdlog_printf(log__, mod__,	\
+		   MDLOG_LEVEL_WARN, msg__, ##__VA_ARGS__)
 #else
 #define MDLOG_WARN(log__, mod__, ...) IGNORE(__VA_ARGS__)
 #endif
 
 #if CONFIG_MDLOG_LEVEL <= MDLOG_LEVEL_ERROR
 #define MDLOG_ERROR(log__, mod__, msg__, ...) mdlog_printf(log__, mod__, \
-        MDLOG_LEVEL_ERROR, msg__, ##__VA_ARGS__)
+		    MDLOG_LEVEL_ERROR, msg__, ##__VA_ARGS__)
 #else
 #define MDLOG_ERROR(log__, mod__, ...) IGNORE(__VA_ARGS__)
 #endif
 
 #if CONFIG_MDLOG_LEVEL <= MDLOG_LEVEL_CRITICAL
 #define MDLOG_CRITICAL(log__, mod__, msg__, ...) mdlog_printf(log__, mod__, \
-        MDLOG_LEVEL_CRITICAL, msg__, ##__VA_ARGS__)
+		       MDLOG_LEVEL_CRITICAL, msg__, ##__VA_ARGS__)
 #else
 #define MDLOG_CRITICAL(log__, mod__, ...) IGNORE(__VA_ARGS__)
 #endif
@@ -282,7 +287,7 @@ struct mdlog *mdlog_find(const char *name);
  * @return                      0 on success; negative error code on failure.
  */
 int mdlog_register(const char *name, struct mdlog *mdlog,
-                   const struct mdlog_handler *lh, void *arg, u8_t level);
+		   const struct mdlog_handler *lh, void *arg, u8_t level);
 
 /**
  * @brief Appends a new entry to an mdlog.
@@ -296,7 +301,7 @@ int mdlog_register(const char *name, struct mdlog *mdlog,
  * @return                      0 on success; negative error code on failure.
  */
 int mdlog_append(struct mdlog *mdlog, u16_t module, u16_t level,
-                 void *data, u16_t len);
+		 void *data, u16_t len);
 
 /**
  * @brief Appends a formatted entry to an mdlog.
@@ -310,7 +315,7 @@ int mdlog_append(struct mdlog *mdlog, u16_t module, u16_t level,
  * @return                      0 on success; negative error code on failure.
  */
 void mdlog_printf(struct mdlog *mdlog, uint16_t module, uint16_t level,
-                  const char * restrict msg, ...);
+		  const char *restrict msg, ...);
 
 /**
  * @brief Reads an entry from an mdlog.
@@ -325,7 +330,7 @@ void mdlog_printf(struct mdlog *mdlog, uint16_t module, uint16_t level,
  *                              Negative error code on failure.
  */
 int mdlog_read(struct mdlog *mdlog, const void *descriptor, void *buf,
-               u16_t off, u16_t len);
+	       u16_t off, u16_t len);
 
 /*
  * @brief Applies a function to every entry in a log.
@@ -338,7 +343,7 @@ int mdlog_read(struct mdlog *mdlog, const void *descriptor, void *buf,
  *                              nonzero if the walk was aborted.
  */
 int mdlog_walk(struct mdlog *mdlog, mdlog_walk_fn *walk_func,
-               struct mdlog_offset *mdlog_offset);
+	       struct mdlog_offset *mdlog_offset);
 
 /**
  * Clears an mdlog.
