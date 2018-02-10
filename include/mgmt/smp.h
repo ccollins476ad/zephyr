@@ -38,7 +38,7 @@ struct net_buf;
  * @return                      0 on success, MGMT_ERR_[...] code on failure.
  */
 typedef int zephyr_smp_transport_out_fn(struct zephyr_smp_transport *zst,
-                                        struct net_buf *nb);
+					struct net_buf *nb);
 
 /** @typedef zephyr_smp_transport_get_mtu_fn
  * @brief SMP MTU query function for Zephyr.
@@ -53,21 +53,20 @@ typedef int zephyr_smp_transport_out_fn(struct zephyr_smp_transport *zst,
  * @return                      The transport's MTU;
  *                              0 if transmission is currently not possible.
  */
-typedef uint16_t
-zephyr_smp_transport_get_mtu_fn(const struct net_buf *nb);
+typedef uint16_t zephyr_smp_transport_get_mtu_fn(const struct net_buf *nb);
 
 /**
  * @brief Provides Zephyr-specific functionality for sending SMP responses.
- */ 
+ */
 struct zephyr_smp_transport {
-    /* Must be the first member. */
-    struct k_work zst_work;
+	/* Must be the first member. */
+	struct k_work zst_work;
 
-    /* FIFO containing incoming requests to be processed. */
-    struct k_fifo zst_fifo;
+	/* FIFO containing incoming requests to be processed. */
+	struct k_fifo zst_fifo;
 
-    zephyr_smp_transport_out_fn *zst_output;
-    zephyr_smp_transport_get_mtu_fn *zst_get_mtu;
+	zephyr_smp_transport_out_fn *zst_output;
+	zephyr_smp_transport_get_mtu_fn *zst_get_mtu;
 };
 
 /**
@@ -80,8 +79,8 @@ struct zephyr_smp_transport {
  * @return                      0 on success, MGMT_ERR_[...] code on failure.
  */
 void zephyr_smp_transport_init(struct zephyr_smp_transport *zst,
-                               zephyr_smp_transport_out_fn *output_func,
-                               zephyr_smp_transport_get_mtu_fn *get_mtu_func);
+			       zephyr_smp_transport_out_fn *output_func,
+			       zephyr_smp_transport_get_mtu_fn *get_mtu_func);
 
 /**
  * @brief Enqueues an incoming SMP request packet for processing.
