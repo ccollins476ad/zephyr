@@ -36,8 +36,8 @@ mdlog_console_append(struct mdlog *mdlog, const void *buf, int len)
 }
 
 static int
-mdlog_console_read(struct mdlog *mdlog, const void *src, void *buf, uint16_t offset,
-                   uint16_t len)
+mdlog_console_read(struct mdlog *mdlog, const void *src, void *buf,
+		   u16_t offset, u16_t len)
 {
 	/* You don't read console, console read you */
 	return -EINVAL;
@@ -45,7 +45,7 @@ mdlog_console_read(struct mdlog *mdlog, const void *src, void *buf, uint16_t off
 
 static int
 mdlog_console_walk(struct mdlog *mdlog, mdlog_walk_fn *walk_func,
-                   struct mdlog_offset *mdlog_offset)
+		   struct mdlog_offset *mdlog_offset)
 {
 	/* You don't walk console, console walk you. */
 	return -EINVAL;
