@@ -43,9 +43,9 @@ static struct bt_uuid_128 smp_bt_chr_uuid = BT_UUID_INIT_128(
  * Write handler for the SMP characteristic; processes an incoming SMP request.
  */
 static ssize_t smp_bt_chr_write(struct bt_conn *conn,
-                                const struct bt_gatt_attr *attr,
-                                const void *buf, u16_t len, u16_t offset,
-                                u8_t flags)
+				const struct bt_gatt_attr *attr,
+				const void *buf, u16_t len, u16_t offset,
+				u8_t flags)
 {
 	const bt_addr_le_t *addr;
 	struct net_buf *nb;
@@ -54,7 +54,7 @@ static ssize_t smp_bt_chr_write(struct bt_conn *conn,
 	net_buf_add_mem(nb, buf, len);
 
 	addr = bt_conn_get_dst(conn);
-	memcpy(net_buf_user_data(nb), addr, sizeof *addr);
+	memcpy(net_buf_user_data(nb), addr, sizeof(*addr));
 
 	zephyr_smp_rx_req(&smp_bt_transport, nb);
 
@@ -71,10 +71,10 @@ static struct bt_gatt_attr smp_bt_attrs[] = {
 	BT_GATT_PRIMARY_SERVICE(&smp_bt_svc_uuid),
 
 	BT_GATT_CHARACTERISTIC(&smp_bt_chr_uuid.uuid,
-	                       BT_GATT_CHRC_WRITE_WITHOUT_RESP |
-	                       BT_GATT_CHRC_NOTIFY),
+			       BT_GATT_CHRC_WRITE_WITHOUT_RESP |
+			       BT_GATT_CHRC_NOTIFY),
 	BT_GATT_DESCRIPTOR(&smp_bt_chr_uuid.uuid,
-	                   BT_GATT_PERM_WRITE, NULL, smp_bt_chr_write, NULL),
+			   BT_GATT_PERM_WRITE, NULL, smp_bt_chr_write, NULL),
 	BT_GATT_CCC(smp_bt_ccc, smp_bt_ccc_changed),
 };
 
@@ -97,7 +97,7 @@ static struct bt_conn *smp_bt_conn_from_pkt(const struct net_buf *nb)
 	bt_addr_le_t addr;
 
 	/* Cast away const. */
-	memcpy(&addr, net_buf_user_data((void *)nb), sizeof addr);
+	memcpy(&addr, net_buf_user_data((void *)nb), sizeof(addr));
 	return bt_conn_lookup_addr_le(&addr);
 }
 
@@ -153,7 +153,7 @@ static int smp_bt_init(struct device *dev)
 	ARG_UNUSED(dev);
 
 	zephyr_smp_transport_init(&smp_bt_transport, smp_bt_tx_pkt,
-	                          smp_bt_get_mtu);
+				  smp_bt_get_mtu);
 	return 0;
 }
 
