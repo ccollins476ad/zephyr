@@ -41,7 +41,7 @@ static int smp_shell_rx_line(const char *line, void *arg)
 
 	for (i = 0; line[i] != '\0'; i++) {
 		complete = mcumgr_serial_rx_byte(&smp_shell_rx_ctxt, line[i],
-		                                 &raw, &raw_len);
+						 &raw, &raw_len);
 		if (complete) {
 			nb = mcumgr_buf_alloc();
 			net_buf_add_mem(nb, raw, raw_len);
@@ -66,7 +66,7 @@ static int smp_shell_tx_raw(const void *data, int len, void *arg)
 }
 
 static int smp_shell_tx_pkt(struct zephyr_smp_transport *zst,
-                            struct net_buf *nb)
+			    struct net_buf *nb)
 {
 	int rc;
 
@@ -81,7 +81,7 @@ static int smp_shell_init(struct device *dev)
 	ARG_UNUSED(dev);
 
 	zephyr_smp_transport_init(&smp_shell_transport, smp_shell_tx_pkt,
-	                          smp_shell_get_mtu);
+				  smp_shell_get_mtu);
 	shell_register_mcumgr_handler(smp_shell_rx_line, NULL);
 
 	return 0;
