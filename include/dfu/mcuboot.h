@@ -31,10 +31,10 @@
 #define BOOT_IMG_VER_STRLEN_MAX 25  /* 255.255.65535.4294967295\0 */
 
 struct image_version {
-    uint8_t iv_major;
-    uint8_t iv_minor;
-    uint16_t iv_revision;
-    uint32_t iv_build_num;
+	u8_t iv_major;
+	u8_t iv_minor;
+	u16_t iv_revision;
+	u32_t iv_build_num;
 };
 
 /**
@@ -176,4 +176,4 @@ int boot_request_upgrade(int permanent);
  */
 int boot_erase_img_bank(u32_t bank_offset);
 
-#endif	/* __MCUBOOT_H__ */
+#endif  /* __MCUBOOT_H__ */
