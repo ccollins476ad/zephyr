@@ -93,20 +93,20 @@ static const u32_t boot_img_magic[4] = {
 
 struct boot_swap_table {
 	/** * For each field, a value of 0 means "any". */
-	uint8_t magic_slot0;
-	uint8_t magic_slot1;
-	uint8_t image_ok_slot0;
-	uint8_t image_ok_slot1;
-	uint8_t copy_done_slot0;
-	
-	uint8_t swap_type;
+	u8_t magic_slot0;
+	u8_t magic_slot1;
+	u8_t image_ok_slot0;
+	u8_t image_ok_slot1;
+	u8_t copy_done_slot0;
+
+	u8_t swap_type;
 };
 
 /** Represents the management state of a single image slot. */
 struct boot_swap_state {
-	uint8_t magic;  /* One of the BOOT_MAGIC_[...] values. */
-	uint8_t copy_done;
-	uint8_t image_ok;
+	u8_t magic;  /* One of the BOOT_MAGIC_[...] values. */
+	u8_t copy_done;
+	u8_t image_ok;
 };
 
 /**
@@ -163,8 +163,7 @@ static const struct boot_swap_table boot_swap_tables[] = {
 		.swap_type =        BOOT_SWAP_TYPE_REVERT,
 	},
 };
-#define BOOT_SWAP_TABLES_COUNT \
-	(sizeof boot_swap_tables / sizeof boot_swap_tables[0])
+#define BOOT_SWAP_TABLES_COUNT (ARRAY_SIZE(boot_swap_tables))
 
 static struct device *flash_dev;
 
@@ -357,17 +356,17 @@ int boot_read_bank_header(u32_t bank_offset,
 static int boot_magic_code_check(const u32_t *magic)
 {
 	int i;
- 
+
 	if (memcmp(magic, boot_img_magic, sizeof(boot_img_magic)) == 0) {
 		return BOOT_MAGIC_GOOD;
 	}
- 
+
 	for (i = 0; i < ARRAY_SIZE(boot_img_magic); i++) {
 		if (magic[i] != 0xffffffff) {
 			return BOOT_MAGIC_BAD;
 		}
 	}
- 
+
 	return BOOT_MAGIC_UNSET;
 }
 
@@ -425,20 +424,20 @@ int boot_swap_type(void)
 	struct boot_swap_state state_slot1;
 	int rc;
 	int i;
-	
+
 	rc = boot_read_swap_state(FLASH_BANK0_OFFSET, &state_slot0);
 	if (rc != 0) {
 		return rc;
 	}
-	
+
 	rc = boot_read_swap_state(FLASH_BANK1_OFFSET, &state_slot1);
 	if (rc != 0) {
 		return rc;
 	}
-	
+
 	for (i = 0; i < BOOT_SWAP_TABLES_COUNT; i++) {
 		table = boot_swap_tables + i;
-	
+
 		if ((table->magic_slot0     == 0    ||
 		     table->magic_slot0     == state_slot0.magic)           &&
 		    (table->magic_slot1     == 0    ||
@@ -449,14 +448,14 @@ int boot_swap_type(void)
 		     table->image_ok_slot1  == state_slot1.image_ok)        &&
 		    (table->copy_done_slot0 == 0    ||
 		     table->copy_done_slot0 == state_slot0.copy_done)) {
-	
+
 			assert(table->swap_type == BOOT_SWAP_TYPE_TEST ||
 			       table->swap_type == BOOT_SWAP_TYPE_PERM ||
 			       table->swap_type == BOOT_SWAP_TYPE_REVERT);
 			return table->swap_type;
 		}
 	}
-	
+
 	return BOOT_SWAP_TYPE_NONE;
 }
 
