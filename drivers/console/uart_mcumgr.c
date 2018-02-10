@@ -53,17 +53,17 @@ static void uart_mcumgr_isr(struct device *unused)
 	ARG_UNUSED(unused);
 
 	while (uart_irq_update(uart_mcumgr_dev) &&
-		   uart_irq_is_pending(uart_mcumgr_dev)) {
+	       uart_irq_is_pending(uart_mcumgr_dev)) {
 
-		chunk_len = uart_mcumgr_read_chunk(buf, sizeof buf);
+		chunk_len = uart_mcumgr_read_chunk(buf, sizeof(buf));
 		if (chunk_len == 0) {
 			continue;
 		}
 
 		for (i = 0; i < chunk_len; i++) {
 			complete = mcumgr_serial_rx_byte(&uart_mcumgr_rx_ctxt,
-			                                 buf[i], &pkt,
-			                                 &pkt_len);
+							 buf[i], &pkt,
+							 &pkt_len);
 			if (complete) {
 				uart_mgumgr_recv_cb(pkt, pkt_len);
 			}
@@ -79,7 +79,7 @@ static int uart_mcumgr_send_raw(const void *data, int len, void *arg)
 	const u8_t *u8p;
 
 	u8p = data;
-	while (len--)  {
+	while (len--) {
 		uart_poll_out(uart_mcumgr_dev, *u8p++);
 	}
 
