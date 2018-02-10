@@ -26,13 +26,13 @@
 struct net_buf;
 
 struct cbor_nb_reader {
-    struct cbor_decoder_reader r;
-    struct net_buf *nb;
+	struct cbor_decoder_reader r;
+	struct net_buf *nb;
 };
 
 struct cbor_nb_writer {
-    struct cbor_encoder_writer enc;
-    struct net_buf *nb;
+	struct cbor_encoder_writer enc;
+	struct net_buf *nb;
 };
 
 /**
@@ -57,7 +57,7 @@ void mcumgr_buf_free(struct net_buf *nb);
  * @param nb                    The net_buf that the writer will write to.
  */
 void cbor_nb_writer_init(struct cbor_nb_writer *cnw,
-                         struct net_buf *nb);
+			 struct net_buf *nb);
 
 /**
  * @brief Initializes a CBOR reader with the specified net_buf.
@@ -66,6 +66,6 @@ void cbor_nb_writer_init(struct cbor_nb_writer *cnw,
  * @param nb                    The net_buf that the reader will read from.
  */
 void cbor_nb_reader_init(struct cbor_nb_reader *cnr,
-                         struct net_buf *nb);
+			 struct net_buf *nb);
 
 #endif
