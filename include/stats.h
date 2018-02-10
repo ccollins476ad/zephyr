@@ -65,15 +65,15 @@ extern "C" {
 #endif
 
 struct stats_name_map {
-	uint16_t snm_off;
+	u16_t snm_off;
 	const char *snm_name;
-} __attribute__((packed));
+} __packed;
 
 struct stats_hdr {
 	const char *s_name;
-	uint8_t s_size;
-	uint8_t s_cnt;
-	uint16_t s_pad1;
+	u8_t s_size;
+	u8_t s_cnt;
+	u16_t s_pad1;
 #ifdef CONFIG_STATS_NAMES
 	const struct stats_name_map *s_map;
 	int s_map_cnt;
@@ -86,7 +86,7 @@ struct stats_hdr {
  *
  * @param group__               The name to assign to the structure tag.
  */
-#define STATS_SECT_DECL(group__)                                            \
+#define STATS_SECT_DECL(group__) \
 	struct stats_ ## group__
 
 /**
@@ -104,37 +104,37 @@ struct stats_hdr {
  *
  * @param group__               The stats group struct name.
  */
-#define STATS_SECT_START(group__)                                           \
-STATS_SECT_DECL(group__) {                                                  \
-	struct stats_hdr s_hdr;
+#define STATS_SECT_START(group__)  \
+	STATS_SECT_DECL(group__) { \
+		struct stats_hdr s_hdr;
 
 /**
  * @brief Declares a 32-bit stat entry inside a group struct.
  *
  * @param var__                 The name ot assign to the entry.
  */
-#define STATS_SECT_ENTRY(var__) uint32_t var__;
+#define STATS_SECT_ENTRY(var__) u32_t var__;
 
 /**
  * @brief Declares a 16-bit stat entry inside a group struct.
  *
  * @param var__                 The name ot assign to the entry.
  */
-#define STATS_SECT_ENTRY16(var__) uint16_t var__;
+#define STATS_SECT_ENTRY16(var__) u16_t var__;
 
 /**
  * @brief Declares a 32-bit stat entry inside a group struct.
  *
  * @param var__                 The name ot assign to the entry.
  */
-#define STATS_SECT_ENTRY32(var__) uint32_t var__;
+#define STATS_SECT_ENTRY32(var__) u32_t var__;
 
 /**
  * @brief Declares a 64-bit stat entry inside a group struct.
  *
  * @param var__                 The name ot assign to the entry.
  */
-#define STATS_SECT_ENTRY64(var__) uint64_t var__;
+#define STATS_SECT_ENTRY64(var__) u64_t var__;
 
 /**
  * @brief Increases a statistic entry by the specified amount.
@@ -146,7 +146,7 @@ STATS_SECT_DECL(group__) {                                                  \
  * @param var__                 The statistic entry to increase.
  * @param n__                   The amount to increase the statistic entry by.
  */
-#define STATS_INCN(group__, var__, n__)                                     \
+#define STATS_INCN(group__, var__, n__)	\
 	((group__).var__ += (n__))
 
 /**
@@ -158,7 +158,7 @@ STATS_SECT_DECL(group__) {                                                  \
  * @param group__               The group containing the entry to increase.
  * @param var__                 The statistic entry to increase.
  */
-#define STATS_INC(group__, var__)                                           \
+#define STATS_INC(group__, var__) \
 	STATS_INCN(group__, var__, 1)
 
 /**
@@ -170,16 +170,16 @@ STATS_SECT_DECL(group__) {                                                  \
  * @param group__               The group containing the entry to clear.
  * @param var__                 The statistic entry to clear.
  */
-#define STATS_CLEAR(group__, var__)                                         \
+#define STATS_CLEAR(group__, var__) \
 	((group__).var__ = 0)
 
-#define STATS_SIZE_16 (sizeof(uint16_t))
-#define STATS_SIZE_32 (sizeof(uint32_t))
-#define STATS_SIZE_64 (sizeof(uint64_t))
+#define STATS_SIZE_16 (sizeof(u16_t))
+#define STATS_SIZE_32 (sizeof(u32_t))
+#define STATS_SIZE_64 (sizeof(u64_t))
 
-#define STATS_SIZE_INIT_PARMS(group__, size__)                              \
-	(size__),                                                           \
-	((sizeof (group__)) - sizeof (struct stats_hdr)) / (size__)
+#define STATS_SIZE_INIT_PARMS(group__, size__) \
+	(size__),			       \
+	((sizeof(group__)) - sizeof(struct stats_hdr)) / (size__)
 
 /**
  * @brief Initializes and registers a statistics group.
@@ -195,12 +195,12 @@ STATS_SECT_DECL(group__) {                                                  \
  *
  * @return                      0 on success; negative error code on failure.
  */
-#define STATS_INIT_AND_REG(group__, size__, name__)                         \
-	stats_init_and_reg(                                                 \
-		&(group__).s_hdr,                                           \
-		(size__),                                                   \
-		(sizeof (group__) - sizeof (struct stats_hdr)) / (size__),  \
-		STATS_NAME_INIT_PARMS(group__),                             \
+#define STATS_INIT_AND_REG(group__, size__, name__)			 \
+	stats_init_and_reg(						 \
+		&(group__).s_hdr,					 \
+		(size__),						 \
+		(sizeof(group__) - sizeof(struct stats_hdr)) / (size__), \
+		STATS_NAME_INIT_PARMS(group__),				 \
 		(name__))
 
 /**
@@ -221,7 +221,7 @@ STATS_SECT_DECL(group__) {                                                  \
  * @param var__                 The statistic entry to clear.
  */
 void stats_init(struct stats_hdr *shdr, uint8_t size, uint8_t cnt,
-                const struct stats_name_map *map, uint8_t map_cnt);
+		const struct stats_name_map *map, uint8_t map_cnt);
 
 /**
  * @brief Registers a statistics group to be managed.
@@ -262,8 +262,8 @@ int stats_register(const char *name, struct stats_hdr *shdr);
  * @see STATS_INIT_AND_REG
  */
 int stats_init_and_reg(struct stats_hdr *hdr, uint8_t size, uint8_t cnt,
-                        const struct stats_name_map *map, uint8_t map_cnt,
-                        const char *name);
+		       const struct stats_name_map *map, uint8_t map_cnt,
+		       const char *name);
 
 /**
  * Zeroes the specified statistics group.
@@ -285,7 +285,7 @@ void stats_reset(struct stats_hdr *shdr);
  *                              nonzero to abort the walk.
  */
 typedef int stats_walk_fn(struct stats_hdr *hdr, void *arg,
-                          const char *name, uint16_t off);
+			  const char *name, uint16_t off);
 
 /**
  * @brief Applies a function to every stat entry in a group.
@@ -309,7 +309,7 @@ int stats_walk(struct stats_hdr *hdr, stats_walk_fn *walk_cb, void *arg);
  *                              nonzero to abort the walk.
  */
 typedef int stats_group_walk_fn(struct stats_hdr *hdr, void *arg);
-  
+
 /**
  * @brief Applies a function every registered statistics group.
  *
@@ -344,7 +344,7 @@ struct stats_hdr *stats_group_find(const char *name);
 
 #else /* CONFIG_STATS */
 
-#define STATS_SECT_START(group__)                                           \
+#define STATS_SECT_START(group__) \
 	STATS_SECT_DECL(group__) {
 
 #define STATS_SECT_ENTRY(var__)
@@ -364,17 +364,17 @@ struct stats_hdr *stats_group_find(const char *name);
 
 #define STATS_NAME_MAP_NAME(sectname__) stats_map_ ## sectname__
 
-#define STATS_NAME_START(sectname__)                                        \
-const struct stats_name_map STATS_NAME_MAP_NAME(sectname__)[] = {
+#define STATS_NAME_START(sectname__) \
+	const struct stats_name_map STATS_NAME_MAP_NAME(sectname__)[] = {
 
-#define STATS_NAME(sectname__, entry__)                                     \
+#define STATS_NAME(sectname__, entry__)	\
 	{ offsetof(STATS_SECT_DECL(sectname__), entry__), #entry__ },
 
-#define STATS_NAME_END(sectname__)                                          \
-};
+#define STATS_NAME_END(sectname__) \
+	};
 
-#define STATS_NAME_INIT_PARMS(name__)                                       \
-	&(STATS_NAME_MAP_NAME(name__)[0]),                                  \
+#define STATS_NAME_INIT_PARMS(name__)	    \
+	&(STATS_NAME_MAP_NAME(name__)[0]), \
 	(sizeof(STATS_NAME_MAP_NAME(name__)) / sizeof(struct stats_name_map))
 
 #else /* CONFIG_STATS_NAMES */
