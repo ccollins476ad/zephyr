@@ -37,7 +37,7 @@ static u16_t smp_uart_get_mtu(const struct net_buf *nb)
 }
 
 static int smp_uart_tx_pkt(struct zephyr_smp_transport *zst,
-                           struct net_buf *nb)
+			   struct net_buf *nb)
 {
 	int rc;
 
@@ -52,7 +52,7 @@ static int smp_uart_init(struct device *dev)
 	ARG_UNUSED(dev);
 
 	zephyr_smp_transport_init(&smp_uart_transport, smp_uart_tx_pkt,
-	                          smp_uart_get_mtu);
+				  smp_uart_get_mtu);
 	uart_mcumgr_register(smp_uart_rx_pkt);
 
 	return 0;
