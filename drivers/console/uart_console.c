@@ -44,8 +44,7 @@ void uart_console_in_debug_hook_install(uart_console_in_debug_hook_t hook)
 	debug_hook_in = hook;
 }
 
-static UART_CONSOLE_OUT_DEBUG_HOOK_SIG(debug_hook_out_nop)
-{
+static UART_CONSOLE_OUT_DEBUG_HOOK_SIG(debug_hook_out_nop) {
 	ARG_UNUSED(c);
 	return !UART_CONSOLE_DEBUG_HOOK_HANDLED;
 }
@@ -102,7 +101,7 @@ static int console_out(int c)
 		return c;
 	}
 
-#endif /* CONFIG_UART_CONSOLE_DEBUG_SERVER_HOOKS */
+#endif  /* CONFIG_UART_CONSOLE_DEBUG_SERVER_HOOKS */
 
 	if ('\n' == c) {
 		uart_poll_out(uart_console_dev, '\r');
@@ -117,16 +116,16 @@ static int console_out(int c)
 #if defined(CONFIG_STDOUT_CONSOLE)
 extern void __stdout_hook_install(int (*hook)(int));
 #else
-#define __stdout_hook_install(x)		\
-	do {/* nothing */			\
+#define __stdout_hook_install(x) \
+	do {    /* nothing */	 \
 	} while ((0))
 #endif
 
 #if defined(CONFIG_PRINTK)
 extern void __printk_hook_install(int (*fn)(int));
 #else
-#define __printk_hook_install(x)		\
-	do {/* nothing */			\
+#define __printk_hook_install(x) \
+	do {    /* nothing */	 \
 	} while ((0))
 #endif
 
@@ -493,7 +492,7 @@ void uart_console_isr(struct device *unused)
 		if (handle_mcumgr(cmd, byte)) {
 			continue;
 		}
-#endif /* CONFIG_UART_CONSOLE_MCUMGR */
+#endif          /* CONFIG_UART_CONSOLE_MCUMGR */
 
 		/* Handle ANSI escape mode */
 		if (atomic_test_bit(&esc_state, ESC_ANSI)) {
@@ -576,11 +575,11 @@ void uart_register_input(struct k_fifo *avail, struct k_fifo *lines,
 }
 
 #else
-#define console_input_init(x)			\
-	do {/* nothing */			\
+#define console_input_init(x) \
+	do {    /* nothing */ \
 	} while ((0))
-#define uart_register_input(x)			\
-	do {/* nothing */			\
+#define uart_register_input(x) \
+	do {    /* nothing */  \
 	} while ((0))
 #endif
 
@@ -630,10 +629,10 @@ static int uart_console_init(struct device *arg)
 /* UART console initializes after the UART device itself */
 SYS_INIT(uart_console_init,
 #if defined(CONFIG_USB_UART_CONSOLE)
-			APPLICATION,
+	 APPLICATION,
 #elif defined(CONFIG_EARLY_CONSOLE)
-			PRE_KERNEL_1,
+	 PRE_KERNEL_1,
 #else
-			POST_KERNEL,
+	 POST_KERNEL,
 #endif
-			CONFIG_UART_CONSOLE_INIT_PRIORITY);
+	 CONFIG_UART_CONSOLE_INIT_PRIORITY);
