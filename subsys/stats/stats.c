@@ -32,7 +32,7 @@ stats_get_name(const struct stats_hdr *hdr, int idx)
 {
 #ifdef CONFIG_STATS_NAMES
 	const struct stats_name_map *cur;
-	uint16_t off;
+	u16_t off;
 	int i;
 
 	/* The stats name map contains two elements, an offset into the
@@ -40,7 +40,7 @@ stats_get_name(const struct stats_hdr *hdr, int idx)
 	 * offset.  This annotation allows for naming only certain statistics,
 	 * and doesn't enforce ordering restrictions on the stats name map.
 	 */
-	off = sizeof *hdr + idx * hdr->s_size;
+	off = sizeof(*hdr) + idx * hdr->s_size;
 	for (i = 0; i < hdr->s_map_cnt; i++) {
 		cur = hdr->s_map + i;
 		if (cur->snm_off == off) {
@@ -52,10 +52,10 @@ stats_get_name(const struct stats_hdr *hdr, int idx)
 	return NULL;
 }
 
-static uint16_t
+static u16_t
 stats_get_off(const struct stats_hdr *hdr, int idx)
 {
-	return sizeof *hdr + idx * hdr->s_size;
+	return sizeof(*hdr) + idx * hdr->s_size;
 }
 
 /**
@@ -85,7 +85,7 @@ stats_walk(struct stats_hdr *hdr, stats_walk_fn *walk_func, void *arg)
 		name = stats_get_name(hdr, i);
 		if (name == NULL) {
 			/* No assigned name; generate a temporary s<#> name. */
-			snprintf(name_buf, sizeof (name_buf), "s%d", i);
+			snprintf(name_buf, sizeof(name_buf), "s%d", i);
 			name = name_buf;
 		}
 
@@ -111,8 +111,8 @@ stats_walk(struct stats_hdr *hdr, stats_walk_fn *walk_func, void *arg)
  * @param map_cnt The number of items in the statistics map
  */
 void
-stats_init(struct stats_hdr *hdr, uint8_t size, uint8_t cnt,
-           const struct stats_name_map *map, uint8_t map_cnt)
+stats_init(struct stats_hdr *hdr, u8_t size, u8_t cnt,
+	   const struct stats_name_map *map, u8_t map_cnt)
 {
 	hdr->s_size = size;
 	hdr->s_cnt = cnt;
@@ -157,10 +157,10 @@ stats_group_get_next(const struct stats_hdr *cur)
 {
 	if (cur == NULL) {
 		return stats_list;
-	} else {
-		/* Cast away const. */
-		return cur->s_next;
 	}
+
+	/* Cast away const. */
+	return cur->s_next;
 }
 
 /**
@@ -237,9 +237,9 @@ stats_register(const char *name, struct stats_hdr *hdr)
  * @return 0 on success, non-zero error code on failure.
  */
 int
-stats_init_and_reg(struct stats_hdr *shdr, uint8_t size, uint8_t cnt,
-                   const struct stats_name_map *map, uint8_t map_cnt,
-                   const char *name)
+stats_init_and_reg(struct stats_hdr *shdr, u8_t size, u8_t cnt,
+		   const struct stats_name_map *map, u8_t map_cnt,
+		   const char *name)
 {
 	int rc;
 
