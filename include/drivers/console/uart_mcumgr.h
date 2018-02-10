@@ -26,7 +26,7 @@ extern "C" {
  * @param buf                   A buffer containing the incoming mcumgr packet.
  * @param len                   The length of the buffer, in bytes.
  */
-typedef void uart_mcumgr_recv_fn(const u8_t *buf, size_t len);
+typedef void uart_mcumgr_recv_fn (const u8_t *buf, size_t len);
 
 /**
  * @brief Sends an mcumgr packet over UART.
