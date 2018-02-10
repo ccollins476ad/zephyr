@@ -30,7 +30,7 @@ struct mdlog_fcb {
 
 static int
 mdlog_fcb_append_rotate(struct mdlog *mdlog, int len,
-                        struct fcb_entry *out_entry)
+			struct fcb_entry *out_entry)
 {
 	struct mdlog_fcb *mdlog_fcb;
 	struct fcb *fcb;
@@ -57,7 +57,7 @@ mdlog_fcb_append_rotate(struct mdlog *mdlog, int len,
 		return -EIO;
 	}
 
-	return EAGAIN;
+	return -EAGAIN;
 }
 
 static int
@@ -73,13 +73,13 @@ mdlog_fcb_append(struct mdlog *mdlog, const void *buf, int len)
 
 	do {
 		rc = mdlog_fcb_append_rotate(mdlog, len, &entry);
-	} while (rc == EAGAIN);
+	} while (rc == -EAGAIN);
 	if (rc != 0) {
 		return rc;
 	}
-		
+
 	rc = fcb_flash_write(fcb, entry.fe_sector, entry.fe_data_off, buf,
-	                     len);
+			     len);
 	if (rc != 0) {
 		return -EIO;
 	}
@@ -94,7 +94,7 @@ mdlog_fcb_append(struct mdlog *mdlog, const void *buf, int len)
 
 static int
 mdlog_fcb_read(struct mdlog *mdlog, const void *descriptor, void *buf,
-               u16_t offset, u16_t len)
+	       u16_t offset, u16_t len)
 {
 	const struct fcb_entry *entry;
 	struct mdlog_fcb *mdlog_fcb;
@@ -110,7 +110,7 @@ mdlog_fcb_read(struct mdlog *mdlog, const void *descriptor, void *buf,
 		len = entry->fe_data_len - offset;
 	}
 	rc = fcb_flash_read(fcb, entry->fe_sector, entry->fe_data_off + offset,
-	                    buf, len);
+			    buf, len);
 	if (rc != 0) {
 		return -EIO;
 	}
@@ -120,7 +120,7 @@ mdlog_fcb_read(struct mdlog *mdlog, const void *descriptor, void *buf,
 
 static int
 mdlog_fcb_walk(struct mdlog *mdlog, mdlog_walk_fn *walk_func,
-               struct mdlog_offset *offset)
+	       struct mdlog_offset *offset)
 {
 	struct fcb_entry entry;
 	struct mdlog_fcb *fm;
@@ -130,7 +130,7 @@ mdlog_fcb_walk(struct mdlog *mdlog, mdlog_walk_fn *walk_func,
 	fm = mdlog->l_arg;
 	fcb = &fm->fcb;
 
-	memset(&entry, 0, sizeof entry);
+	memset(&entry, 0, sizeof(entry));
 
 	/* If timestamp for request < 0, only operate on the last log entry. */
 	if (offset->lo_ts < 0) {
