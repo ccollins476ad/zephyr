@@ -40,6 +40,5 @@ target_sources(app PRIVATE
 )
 
 zephyr_link_libraries(
-    MCUMGR
     NFFS
 )
