@@ -71,6 +71,7 @@
 #define MBEDTLS_AES_C
 #define MBEDTLS_ASN1_PARSE_C
 #define MBEDTLS_ASN1_WRITE_C
+#define MBEDTLS_BASE64_C
 #define MBEDTLS_BIGNUM_C
 #define MBEDTLS_CCM_C
 #define MBEDTLS_CIPHER_C
@@ -88,7 +89,6 @@
 #define MBEDTLS_SSL_CLI_C
 #define MBEDTLS_SSL_SRV_C
 #define MBEDTLS_SSL_TLS_C
-
 
 /* Save RAM at the expense of ROM */
 #define MBEDTLS_AES_ROM_TABLES
