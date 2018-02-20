@@ -100,35 +100,35 @@ struct stats_hdr {
  */
 #define STATS_SECT_START(group__)  \
 	STATS_SECT_DECL(group__) { \
-		struct stats_hdr s_hdr;
+		struct stats_hdr s_hdr
 
 /**
  * @brief Declares a 32-bit stat entry inside a group struct.
  *
  * @param var__                 The name ot assign to the entry.
  */
-#define STATS_SECT_ENTRY(var__) u32_t var__;
+#define STATS_SECT_ENTRY(var__) u32_t var__
 
 /**
  * @brief Declares a 16-bit stat entry inside a group struct.
  *
  * @param var__                 The name ot assign to the entry.
  */
-#define STATS_SECT_ENTRY16(var__) u16_t var__;
+#define STATS_SECT_ENTRY16(var__) u16_t var__
 
 /**
  * @brief Declares a 32-bit stat entry inside a group struct.
  *
  * @param var__                 The name ot assign to the entry.
  */
-#define STATS_SECT_ENTRY32(var__) u32_t var__;
+#define STATS_SECT_ENTRY32(var__) u32_t var__
 
 /**
  * @brief Declares a 64-bit stat entry inside a group struct.
  *
  * @param var__                 The name ot assign to the entry.
  */
-#define STATS_SECT_ENTRY64(var__) u64_t var__;
+#define STATS_SECT_ENTRY64(var__) u64_t var__
 
 /**
  * @brief Increases a statistic entry by the specified amount.
