@@ -38,7 +38,7 @@ config MCUMGR_SMP_SHELL_MTU
 	help
 	  Maximum size of SMP frames sent and received over shell.  This value
 	  must satisfy the following relation:
-	    MCUMGR_SMP_SHELL_MTU <= MCUMGR_BUF_SIZE + 2
+	  MCUMGR_SMP_SHELL_MTU <= MCUMGR_BUF_SIZE + 2
 endif
 
 
@@ -63,7 +63,7 @@ config MCUMGR_SMP_UART_MTU
 	help
 	  Maximum size of SMP frames sent and received over UART, in bytes.
 	  This value must satisfy the following relation:
-	    MCUMGR_SMP_UART_MTU <= MCUMGR_BUF_SIZE + 2
+	  MCUMGR_SMP_UART_MTU <= MCUMGR_BUF_SIZE + 2
 
 endif
 
@@ -82,7 +82,7 @@ config MCUMGR_BUF_SIZE
 	help
 	  The size, in bytes, of each mcumgr buffer.  This value must satisfy
 	  the following relation:
-	    MCUMGR_BUF_SIZE >= transport-specific-MTU + transport-overhead
+	  MCUMGR_BUF_SIZE >= transport-specific-MTU + transport-overhead
 
 config MCUMGR_BUF_USER_DATA_SIZE
 	int
